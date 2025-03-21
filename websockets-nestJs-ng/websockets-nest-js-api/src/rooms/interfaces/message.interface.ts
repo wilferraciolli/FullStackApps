@@ -1,4 +1,4 @@
-export interface Room {
+export interface Message {
   id: string;
   clientId: string;
   feature: string;
