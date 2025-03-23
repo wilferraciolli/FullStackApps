@@ -55,13 +55,24 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Method to send message to all clients
-  public broadcastMessage(event: EVENT_NAME_TYPE, message: Message): void {
-   // TODO change this to be able to send to room
-    this._server.emit(event, message);
+  public broadcastMessageToRoom(message: Message): void {
+    // get room name
+    if (message.replyToSender) {
+      this._sendMessageToAllInRoom(message.roomName, message);
+    } else {
+      const client: Socket | undefined = this._clients.get(message.clientId);
+
+      if (client) {
+        this._sendMessageToAllInRoomExceptsSender(client, message.roomName, message);
+      } else {
+        // if we cant find the client, still broadcast the message as it could be that the client just disconnected
+        this._sendMessageToAllInRoom(message.roomName, message);
+      }
+    }
   }
 
   // Method to send message to specific client
-  public sendToClient(clientId: string, event: EVENT_NAME_TYPE, message: Message) {
+  public sendToClient(clientId: string, event: string, message: Message): void {
     const client: Socket | undefined = this._clients.get(clientId);
     if (client) {
       client.emit(event, message);
@@ -72,10 +83,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(MESSAGE_TYPE.JOIN_ROOM)
   public async handleJoinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { resourceId: string },
+    @MessageBody() data: { roomName: string },
   ): Promise<RoomAcknowledge> {
-    const roomName = `resource:${data.resourceId}`;
-    await client.join(roomName);
+    await client.join(data.roomName);
     // this._logger.log(
     //   `Client ${client.id} is now watching resource ${data.resourceId}`,
     // );
@@ -83,7 +93,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       clientId: client.id,
       success: true,
-      resourceId: data.resourceId
+      roomName: data.roomName
     } as RoomAcknowledge;
   }
 
@@ -91,10 +101,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(MESSAGE_TYPE.LEAVE_ROOM)
   public async handleLeaveRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { resourceId: string },
+    @MessageBody() data: { roomName: string },
   ): Promise<RoomAcknowledge> {
-    const roomName = `resource:${data.resourceId}`;
-    await client.leave(roomName);
+    await client.leave(data.roomName);
     // this._logger.log(
     //   `Client ${client.id} stopped watching resource ${data.resourceId}`,
     // );
@@ -102,7 +111,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       clientId: client.id,
       success: true,
-      resourceId: data.resourceId
+      roomName: data.roomName
     } as RoomAcknowledge;
   }
 
@@ -111,22 +120,31 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() message: Message,
   ): void {
-    if (message.resourceId) {
-      // Only send the message to clients watching this resource
-      const roomName = `resource:${message.resourceId}`;
-      if (message.omitSender) {
-        client.to(roomName)
-          .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+    const roomName: string | undefined = message.roomName;
+
+    if (roomName) {
+      // Only send the message to clients watching this room
+      if (message.replyToSender) {
+        this._sendMessageToAllInRoom(roomName, message);
       } else {
-        this._server.to(roomName)
-          .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+        this._sendMessageToAllInRoomExceptsSender(client, roomName, message)
       }
       // this._logger.log(`Message sent for resource ${message.resourceId}`);
     } else {
-      // If no resourceId is specified, notify only the sender
+      // If no room name is specified, notify only the sender
       client.emit('error', {
-        message: 'No resourceId specified in the message',
+        message: 'No roomName specified in the message',
       });
     }
+  }
+
+  private _sendMessageToAllInRoom(roomName: string, message: Message): void {
+    this._server.to(roomName)
+      .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+  }
+
+  private _sendMessageToAllInRoomExceptsSender(client: Socket, roomName: string, message: Message): void {
+    client.to(roomName)
+      .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
   }
 }
