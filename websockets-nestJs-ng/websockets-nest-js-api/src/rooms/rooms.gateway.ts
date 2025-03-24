@@ -86,9 +86,9 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomName: string },
   ): Promise<RoomAcknowledge> {
     await client.join(data.roomName);
-    // this._logger.log(
-    //   `Client ${client.id} is now watching resource ${data.resourceId}`,
-    // );
+    this._logger.log(
+      `Client ${client.id} is now watching resource ${data.roomName}`,
+    );
 
     return {
       clientId: client.id,
@@ -121,6 +121,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() message: Message,
   ): void {
     const roomName: string | undefined = message.roomName;
+    this._logger.log('Received message from client: ', client.id)
 
     if (roomName) {
       // Only send the message to clients watching this room
@@ -132,7 +133,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // this._logger.log(`Message sent for resource ${message.resourceId}`);
     } else {
       // If no room name is specified, notify only the sender
-      client.emit('error', {
+      client.emit(EVENT_NAME_TYPE.ERROR, {
         message: 'No roomName specified in the message',
       });
     }

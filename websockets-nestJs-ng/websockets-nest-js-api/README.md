@@ -46,12 +46,37 @@ then the server will forward it to the every client connected to the roomId
   message: string;
   replyToSender?: boolean;
   timestamp: string;
-}```
+}
+```
 
-## Dependencies
-### socket io
-```bash
-  npm install 
+### Sending message via http
+You can use http to send messages and broadcast to all clients
+```curl
+    curl -X POST http://localhost:3001/messages/broadcast \
+    -H "Content-Type: application/json" \
+    -d '{
+      "id": "cc5848cf-92b2-4f1f-bdb9-340fa0ad1886",
+      "clientId": "sender-client-id",
+      "roomName": "roomNameChosenByClient",
+      "messageType": "comment-added",
+      "message": "Hello, everyone!",
+      "timestamp": "2024-03-24T12:00:00Z"
+    }'
+```
+
+You can use http to send messages to a single client
+```curl
+    curl -X POST http://localhost:3001/messages/{clientId}?eventName=mesage-reply
+     \
+    -H "Content-Type: application/json" \
+    -d '{
+      "id": "cc5848cf-92b2-4f1f-bdb9-340fa0ad1886",
+      "clientId": "sender-client-id",
+      "roomName": "roomNameChosenByClient",
+      "messageType": "comment-added",
+      "message": "Hello, everyone!",
+      "timestamp": "2024-03-24T12:00:00Z"
+    }'
 ```
 
 ```bash
@@ -68,7 +93,6 @@ then the server will forward it to the every client connected to the roomId
 ```
 
 ## Dependencies
-
 ### Websockets and Socket IO
 
 ```bash
