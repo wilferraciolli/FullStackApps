@@ -6,5 +6,11 @@ Angular websockets project
 ### Material
 `ng add @angular/material`
 
+### ngx socket io
+```bash
+   npm install ngx-socket-io socket.io-client
+   npm install @types/socket.io-client
+```
+
 ### Socket io client
 `npm install ngx-socket-io --save`

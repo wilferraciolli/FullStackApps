@@ -1,0 +1,48 @@
+<mat-drawer-container class="example-container">
+  <mat-drawer mode="side" opened>
+
+    <div class="room-container">
+      Room 1
+      <button mat-raised-button matBadge="8" matBadgePosition="before" (click)="navigateToRoom(1)">
+        Go
+      </button>
+    </div>
+
+    <div class="room-container">
+      Room 2
+      <button mat-raised-button matBadge="8" matBadgePosition="before" (click)="navigateToRoom(2)">
+        Go
+      </button>
+    </div>
+
+    <div class="room-container">
+      Room 3
+      <button mat-raised-button matBadge="8" matBadgePosition="before" (click)="navigateToRoom(3)">
+        Go
+      </button>
+    </div>
+  </mat-drawer>
+
+  <mat-drawer-content>
+    <div class="chat-container">
+      <h2>Real-time Chat George</h2>
+      <h5>Client id: {{clientId()}}</h5>
+      <h5>Room id: {{roomId()}}</h5>
+
+      <div class="messages-container">
+        <div *ngFor="let message of messages" class="message">
+          <span class="user">{{ message.resourceId }}</span>
+          <span class="user">{{ message.clientId }}</span>
+          <span class="content">{{ message.message }}</span>
+          <span class="timestamp">{{ message.timestamp | date:'short' }}</span>
+        </div>
+      </div>
+
+      <div class="input-container">
+        <input [formControl]="messageInput" placeholder="Type a message..." (keyup.enter)="sendMessage()">
+        <button (click)="sendMessage()">Send</button>
+      </div>
+    </div>
+
+  </mat-drawer-content>
+</mat-drawer-container>
