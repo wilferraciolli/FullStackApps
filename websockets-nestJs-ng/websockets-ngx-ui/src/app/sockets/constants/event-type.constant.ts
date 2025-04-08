@@ -1,6 +1,6 @@
 export enum EventType {
-  CLIENT_CONNECTED = 'client_connected',
-  CLIENT_DISCONNECTED = 'client_disconnected',
-  MESSAGE_REPLY = 'message_reply',
+  CLIENT_CONNECTED = 'client-connected',
+  CLIENT_DISCONNECTED = 'client-disconnected',
+  MESSAGE_REPLY = 'message-reply',
   ERROR = 'error'
 }

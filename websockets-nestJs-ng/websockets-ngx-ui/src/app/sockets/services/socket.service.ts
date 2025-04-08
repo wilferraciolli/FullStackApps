@@ -6,6 +6,7 @@ import {Message} from '../interfaces/message.interface';
 import {Room} from '../interfaces/room.interface';
 import {RoomAcknowledge} from '../interfaces/room-acknowledge.interface';
 import {EventType} from '../constants/event-type.constant';
+import {ClientConnection} from '../interfaces/client-connection.interface';
 
 export const socketConfig: SocketIoConfig = {
   url: 'http://localhost:3001',
@@ -47,7 +48,6 @@ export class SocketService {
     });
   }
 
-
   public async joinRoom(data: Room): Promise<RoomAcknowledge> {
     return this._roomAction(MessageType.JOIN_ROOM, data);
   }
@@ -64,7 +64,7 @@ export class SocketService {
 
   joinRoom1(roomName: string): Observable<RoomAcknowledge> {
     return new Observable<RoomAcknowledge>(observer => {
-      this.socket.emit(MessageType.JOIN_ROOM, { roomName }, (response: RoomAcknowledge) => {
+      this.socket.emit(MessageType.JOIN_ROOM, {roomName}, (response: RoomAcknowledge) => {
         observer.next(response);
         observer.complete();
       });
@@ -74,7 +74,7 @@ export class SocketService {
   // Leave a room
   leaveRoom1(roomName: string): Observable<RoomAcknowledge> {
     return new Observable<RoomAcknowledge>(observer => {
-      this.socket.emit(MessageType.LEAVE_ROOM, { roomName }, (response: RoomAcknowledge) => {
+      this.socket.emit(MessageType.LEAVE_ROOM, {roomName}, (response: RoomAcknowledge) => {
         observer.next(response);
         observer.complete();
       });
@@ -91,13 +91,29 @@ export class SocketService {
   //   return this.socket.fromEvent<any>(EventType.ERROR, (data: any) => data);
   // }
   //
-  // // Listen for client connected events
-  // onClientConnected(): Observable<any> {
-  //   return this.socket.fromEvent<any>(EventType.CLIENT_CONNECTED, (data: any) => data);
-  // }
-  //
-  // // Listen for client disconnected events
-  // onClientDisconnected(): Observable<any> {
-  //   return this.socket.fromEvent<any>(EventType.CLIENT_DISCONNECTED, (data: any) => data);
-  // }
+  // Listen for client connected events
+  public onClientConnected(): Observable<ClientConnection> {
+    return new Observable<ClientConnection>(observer => {
+      this.socket.on(EventType.CLIENT_CONNECTED, (clientConnection: ClientConnection) => {
+        observer.next(clientConnection);
+      });
+
+      return () => {
+        this.socket.off(EventType.CLIENT_CONNECTED);
+      }
+    });
+  }
+
+  // Listen for client disconnected events
+  public onClientDisconnected(): Observable<ClientConnection> {
+    return new Observable<ClientConnection>(observer => {
+      this.socket.on(EventType.CLIENT_DISCONNECTED, (clientConnection: ClientConnection) => {
+        observer.next(clientConnection);
+      });
+
+      return () => {
+        this.socket.off(EventType.CLIENT_DISCONNECTED);
+      }
+    });
+  }
 }

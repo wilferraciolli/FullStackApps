@@ -6,6 +6,8 @@ import {Message} from '../../sockets/interfaces/message.interface';
 import {SocketService} from '../../sockets/services/socket.service';
 import {Subscription} from 'rxjs';
 import {MessageType} from '../../sockets/constants/message-type.constant';
+import {EventType} from '../../sockets/constants/event-type.constant';
+import {ClientConnection} from '../../sockets/interfaces/client-connection.interface';
 
 @Component({
   selector: 'wt-room-list',
@@ -25,7 +27,9 @@ export class RoomListComponent implements OnInit, OnDestroy {
   messageInput = new FormControl('');
   private _clientId: WritableSignal<string> = signal('');
   private _roomId: WritableSignal<number> = signal(1);
-  private messageSub: Subscription | null = null;
+  private messageSubscription: Subscription | null = null;
+  private connectedSubscription?: Subscription | null = null;
+  private disconnectedSubscription?: Subscription | null = null;
 
   public clientId: Signal<string> = computed(() => this._clientId());
   public roomId: Signal<number> = computed(() => this._roomId());
@@ -34,11 +38,34 @@ export class RoomListComponent implements OnInit, OnDestroy {
   }
 
   public async ngOnInit(): Promise<void> {
-    this.messageSub = this.socketService.onMessage<Message>('message-reply')
+    this.messageSubscription = this.socketService.onMessage<Message>(EventType.MESSAGE_REPLY)
       .subscribe({
-        next: (message) => {
+        next: (message: Message) => {
           console.log('Message received ', message)
           this.messages.update((messages: Message[]) => [...messages, message]);
+        },
+        error: (err) => {
+          console.error('Socket error:', err);
+        }
+      });
+
+    this.connectedSubscription = this.socketService.onClientConnected()
+      .subscribe({
+        next: (message: ClientConnection) => {
+          console.log('Client connected ', message)
+          // how to know when I am the one that just connected
+         // this._clientId.set(message.clientId);
+        },
+        error: (err) => {
+          console.error('Socket error:', err);
+        }
+      });
+
+    this.disconnectedSubscription = this.socketService.onClientDisconnected()
+      .subscribe({
+        next: (message: ClientConnection) => {
+          console.log('Client disconnected ', message)
+          // this._clientId.set(message.clientId);
         },
         error: (err) => {
           console.error('Socket error:', err);
@@ -74,8 +101,16 @@ export class RoomListComponent implements OnInit, OnDestroy {
   }
 
   public ngOnDestroy(): void {
-    if (this.messageSub) {
-      this.messageSub.unsubscribe();
+    if (this.messageSubscription) {
+      this.messageSubscription.unsubscribe();
+    }
+
+    if (this.connectedSubscription) {
+      this.connectedSubscription.unsubscribe();
+    }
+
+    if (this.disconnectedSubscription) {
+      this.disconnectedSubscription.unsubscribe();
     }
   }
 
