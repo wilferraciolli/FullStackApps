@@ -1,16 +1,17 @@
-import {ApplicationConfig, importProvidersFrom, provideZoneChangeDetection} from '@angular/core';
-import { provideRouter } from '@angular/router';
+import {ApplicationConfig, provideZoneChangeDetection} from '@angular/core';
+import {provideRouter} from '@angular/router';
 
-import { routes } from './app.routes';
-import {SocketIoConfig, SocketIoModule} from 'ngx-socket-io';
-
-const socketConfig: SocketIoConfig = { url: 'http://localhost:3001', options: {} };
+import {routes} from './app.routes';
+import {socketConfig} from './sockets/services/socket.service';
+import {provideHttpClient} from '@angular/common/http';
 
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZoneChangeDetection({eventCoalescing: true}),
     provideRouter(routes),
-    importProvidersFrom(SocketIoModule.forRoot(socketConfig))
+    provideHttpClient(),
+    {provide: 'SOCKET_CONFIG', useValue: socketConfig}
+    // importProvidersFrom(SocketIoModule.forRoot(socketConfig))
   ]
 };

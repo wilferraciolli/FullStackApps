@@ -4,6 +4,6 @@ export interface Message {
   roomName: string;
   messageType: string;
   message: string;
-  omitSender: boolean;
-  timestamp: Date;
+  replyToSender?: boolean;
+  timestamp: string;
 }

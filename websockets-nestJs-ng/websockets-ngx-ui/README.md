@@ -12,5 +12,3 @@ Angular websockets project
    npm install @types/socket.io-client
 ```
 
-### Socket io client
-`npm install ngx-socket-io --save`
