@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# UI folder
+
+- use the hr-ui folder for ui
+- use angular material when possible
+- use sass syntax

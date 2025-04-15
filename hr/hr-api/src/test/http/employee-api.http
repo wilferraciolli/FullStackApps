@@ -1,0 +1,54 @@
+### Environment Variables
+@baseUrl = http://localhost:8080/api/employees
+
+### Get All Employees
+GET {{baseUrl}}
+Accept: application/json
+
+### Get Employee by ID
+GET {{baseUrl}}/1
+Accept: application/json
+
+### Get Employees by Department
+GET {{baseUrl}}/department/Engineering
+Accept: application/json
+
+### Get Employees by Job Title
+GET {{baseUrl}}/job-title/Software Developer
+Accept: application/json
+
+### Create New Employee
+POST {{baseUrl}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Williams",
+  "email": "alice.williams@example.com",
+  "phoneNumber": "555-789-1234",
+  "hireDate": "2023-06-15",
+  "jobTitle": "Product Manager",
+  "salary": 92000.00,
+  "department": "Product"
+}
+
+### Update Employee
+PUT {{baseUrl}}/1
+Content-Type: application/json
+Accept: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "phoneNumber": "555-123-4567",
+  "hireDate": "2022-01-15",
+  "jobTitle": "Senior Software Developer",
+  "salary": 95000.00,
+  "department": "Engineering"
+}
+
+### Delete Employee
+DELETE {{baseUrl}}/4
+Accept: application/json 

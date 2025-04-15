@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# API rule
+
+- use hr-api for API code
+- it uses Spring boot, h2 database and is a web app
