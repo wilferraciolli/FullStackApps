@@ -156,6 +156,10 @@ export class OrgChartComponent {
     ];
   }
 
+  getNodeClass(node: FlatNode): string {
+    return `node-${node.type} ${node.status || ''}`;
+  }
+
   hasChild = (_: number, node: FlatNode) => node.expandable;
 
   getNodeIcon(node: FlatNode): string {
@@ -171,7 +175,27 @@ export class OrgChartComponent {
     }
   }
 
-  getNodeClass(node: FlatNode): string {
-    return `node-${node.type} ${node.status || ''}`;
+  getIconColorClass(node: FlatNode): string {
+    switch (node.type) {
+      case 'org':
+        return 'text-blue-600';
+      case 'department':
+        return 'text-green-600';
+      case 'job':
+        return node.status === 'occupied' ? 'text-purple-600' : 'text-gray-400';
+      default:
+        return '';
+    }
+  }
+
+  getNameColorClass(node: FlatNode): string {
+    switch (node.type) {
+      case 'org':
+        return 'text-lg text-blue-800 font-semibold';
+      case 'department':
+        return 'text-green-800';
+      default:
+        return 'text-gray-900';
+    }
   }
 }

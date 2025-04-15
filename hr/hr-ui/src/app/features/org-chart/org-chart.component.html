@@ -1,1 +1,50 @@
-<p>org-chart works!</p>
+<div class="org-chart-container">
+  <h1 class="title">Organization Chart</h1>
+
+  <mat-card class="org-tree-card">
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+      <!-- Tree node template -->
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding [ngClass]="getNodeClass(node)">
+        <div class="node-content">
+          <mat-icon class="node-icon" [ngClass]="node.status">{{getNodeIcon(node)}}</mat-icon>
+          <div class="node-info">
+            <span class="node-name">{{node.name}}</span>
+            <div class="node-details" *ngIf="node.type === 'job'">
+              <mat-chip-set>
+                <mat-chip [ngClass]="node.status">
+                  {{node.status | titlecase}}
+                </mat-chip>
+              </mat-chip-set>
+              <span class="employee-name" *ngIf="node.employee">
+                {{node.employee}}
+              </span>
+              <span class="position" *ngIf="node.position">
+                {{node.position}}
+              </span>
+            </div>
+          </div>
+        </div>
+      </mat-tree-node>
+
+      <!-- Expandable node template -->
+      <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild" [ngClass]="getNodeClass(node)">
+        <div class="mat-tree-node">
+          <button mat-icon-button matTreeNodeToggle class="toggle-btn">
+            <mat-icon class="mat-icon-rtl-mirror">
+              {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
+            </mat-icon>
+          </button>
+          <div class="node-content">
+            <mat-icon class="node-icon" [ngClass]="node.status">{{getNodeIcon(node)}}</mat-icon>
+            <div class="node-info">
+              <span class="node-name">{{node.name}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="nested-node" [ngClass]="{'expanded': treeControl.isExpanded(node)}">
+          <ng-container matTreeNodeOutlet></ng-container>
+        </div>
+      </mat-nested-tree-node>
+    </mat-tree>
+  </mat-card>
+</div>

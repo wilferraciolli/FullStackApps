@@ -1,0 +1,129 @@
+.org-chart-container {
+  padding: 1.5rem;
+
+  .org-tree-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+  }
+
+  mat-tree {
+    @apply bg-transparent;
+  }
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+
+  .node-icon {
+    font-size: 1.5rem;
+  }
+
+  .node-info {
+    display: flex;
+    flex-direction: column;
+
+    .node-name {
+      font-weight: 500;
+      color: #1a202c;
+    }
+
+    .node-details {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 0.25rem;
+
+      .employee-name {
+        font-size: 0.875rem;
+        color: #4a5568;
+        font-weight: 500;
+      }
+
+      .position {
+        font-size: 0.875rem;
+        color: #718096;
+      }
+    }
+  }
+}
+
+// Node type styles
+.node-org {
+  .node-icon {
+    color: #3182ce;
+  }
+  .node-name {
+    font-size: 1.125rem;
+    color: #2c5282;
+    font-weight: 600;
+  }
+}
+
+.node-department {
+  .node-icon {
+    color: #38a169;
+  }
+  .node-name {
+    color: #276749;
+  }
+}
+
+.node-job {
+  .node-icon {
+    &.occupied {
+      color: #805ad5;
+    }
+    &.vacant {
+      color: #a0aec0;
+    }
+  }
+}
+
+// Tree structure styles
+.mat-tree-node {
+  min-height: 48px;
+}
+
+.nested-node {
+  overflow: hidden;
+
+  &.expanded {
+    border-left: 2px solid #e2e8f0;
+    margin-left: 2.5rem;
+  }
+}
+
+.toggle-btn {
+  color: #718096;
+
+  &:hover {
+    background-color: #f7fafc;
+  }
+}
+
+// Material overrides
+::ng-deep {
+  .mat-tree {
+    background: transparent;
+  }
+
+  .mat-tree-node {
+    min-height: 48px;
+  }
+
+  mat-chip {
+    &.vacant {
+      background-color: #fed7d7 !important;
+      color: #c53030 !important;
+    }
+    &.occupied {
+      background-color: #c6f6d5 !important;
+      color: #2f855a !important;
+    }
+  }
+}
