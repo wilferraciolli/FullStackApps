@@ -1,0 +1,127 @@
+<div class="hrm-container">
+  <h1>Human Resource Management</h1>
+  
+  <mat-tab-group>
+    <!-- Employees Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">people</mat-icon>
+        Employees
+      </ng-template>
+      
+      <div class="tab-content">
+        <div class="grid-container">
+          <mat-card *ngFor="let employee of employees" class="item-card">
+            <mat-card-header>
+              <div mat-card-avatar class="avatar">
+                {{employee.name.charAt(0)}}
+              </div>
+              <mat-card-title>{{employee.name}}</mat-card-title>
+              <mat-card-subtitle>{{employee.position}}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-list>
+                <mat-list-item>
+                  <mat-icon matListItemIcon>business</mat-icon>
+                  <span matListItemTitle>{{employee.department}}</span>
+                </mat-list-item>
+                <mat-list-item>
+                  <mat-icon matListItemIcon>email</mat-icon>
+                  <span matListItemTitle>{{employee.email}}</span>
+                </mat-list-item>
+              </mat-list>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-button color="primary">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </button>
+              <button mat-button color="accent">
+                <mat-icon>visibility</mat-icon>
+                View
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Departments Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">business</mat-icon>
+        Departments
+      </ng-template>
+      
+      <div class="tab-content">
+        <div class="grid-container">
+          <mat-card *ngFor="let department of departments" class="item-card">
+            <mat-card-header>
+              <mat-card-title>{{department.name}}</mat-card-title>
+              <mat-card-subtitle>Manager: {{department.manager}}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-list>
+                <mat-list-item>
+                  <mat-icon matListItemIcon>group</mat-icon>
+                  <span matListItemTitle>{{department.employeeCount}} Employees</span>
+                </mat-list-item>
+              </mat-list>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-button color="primary">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </button>
+              <button mat-button color="accent">
+                <mat-icon>people</mat-icon>
+                View Team
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Jobs Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">work</mat-icon>
+        Jobs
+      </ng-template>
+      
+      <div class="tab-content">
+        <div class="grid-container">
+          <mat-card *ngFor="let job of jobs" class="item-card">
+            <mat-card-header>
+              <mat-card-title>{{job.title}}</mat-card-title>
+              <mat-card-subtitle>{{job.department}}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-list>
+                <mat-list-item>
+                  <mat-icon matListItemIcon>grade</mat-icon>
+                  <span matListItemTitle>Level: {{job.level}}</span>
+                </mat-list-item>
+                <mat-list-item>
+                  <mat-icon matListItemIcon>info</mat-icon>
+                  <span matListItemTitle>Status: {{job.status}}</span>
+                </mat-list-item>
+              </mat-list>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-button color="primary">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </button>
+              <button mat-button [color]="job.status === 'Open' ? 'warn' : 'accent'">
+                <mat-icon>{{job.status === 'Open' ? 'close' : 'check'}}</mat-icon>
+                {{job.status === 'Open' ? 'Close Position' : 'Reopen'}}
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>
