@@ -1,6 +1,6 @@
 # Employee API Testing Guide
 
-This guide provides instructions on how to test the Employee REST API using various HTTP clients.
+This guide provides instructions on how to test the Employee and Org Chart REST APIs using various HTTP clients.
 
 ## Prerequisites
 
@@ -9,9 +9,13 @@ This guide provides instructions on how to test the Employee REST API using vari
 
 ## Available HTTP Clients
 
-### 1. HTTP Request File (`.http`)
+### 1. HTTP Request Files (`.http`)
 
-Located at `src/test/http/employee-api.http`, this file can be used with:
+Located at:
+- `src/test/http/employee-api.http` - Employee API endpoints
+- `src/test/http/orgchart-api.http` - Organization Chart API endpoints
+
+These files can be used with:
 
 - IntelliJ IDEA's HTTP Client
 - VS Code with the REST Client extension
@@ -44,6 +48,8 @@ A Postman collection is available at `postman/Employee_API.postman_collection.js
 
 ## API Endpoints
 
+### Employee API
+
 | Method | Endpoint                        | Description                   |
 |--------|--------------------------------|-------------------------------|
 | GET    | `/api/employees`               | Get all employees             |
@@ -53,6 +59,18 @@ A Postman collection is available at `postman/Employee_API.postman_collection.js
 | POST   | `/api/employees`               | Create a new employee         |
 | PUT    | `/api/employees/{id}`          | Update an existing employee   |
 | DELETE | `/api/employees/{id}`          | Delete an employee            |
+
+### Organization Chart API
+
+| Method | Endpoint                        | Description                   |
+|--------|--------------------------------|-------------------------------|
+| GET    | `/api/org-chart`               | Get full organization chart   |
+| GET    | `/api/org-chart/employee/{employeeId}` | Get org chart for specific employee |
+| GET    | `/api/org-chart/department/{departmentId}` | Get org chart for specific department |
+| GET    | `/api/org-chart/departments`   | Get department hierarchy      |
+| GET    | `/api/org-chart/hierarchies`   | Get all employee hierarchies  |
+| POST   | `/api/org-chart/hierarchies`   | Create/update employee hierarchy |
+| DELETE | `/api/org-chart/hierarchies/{id}` | Delete employee hierarchy  |
 
 ## Example Payloads
 
@@ -68,5 +86,42 @@ A Postman collection is available at `postman/Employee_API.postman_collection.js
   "jobTitle": "Product Manager",
   "salary": 92000.00,
   "department": "Product"
+}
+```
+
+### Create/Update Employee Hierarchy (POST)
+
+```json
+{
+  "employeeId": 1,
+  "managerId": null,
+  "departmentId": 1,
+  "positionLevel": 1
+}
+```
+
+## Response Formats
+
+### OrgChartNodeDTO (Used for UI Components)
+
+```json
+{
+  "id": "1",
+  "name": "John Doe",
+  "title": "CEO",
+  "department": "Executive",
+  "email": "john.doe@example.com",
+  "imageUrl": "https://via.placeholder.com/150",
+  "children": [
+    {
+      "id": "2",
+      "name": "Jane Smith",
+      "title": "HR Manager",
+      "department": "Human Resources",
+      "email": "jane.smith@example.com",
+      "imageUrl": "https://via.placeholder.com/150",
+      "children": []
+    }
+  ]
 }
 ``` 
