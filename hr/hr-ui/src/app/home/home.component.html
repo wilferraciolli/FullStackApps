@@ -1,0 +1,15 @@
+<div class="home-container">
+  <h1>Welcome to HR Portal</h1>
+  <p class="subtitle">Select a module to get started</p>
+
+  <div class="card-grid">
+    <app-hr-card
+      *ngFor="let card of hrCards"
+      [title]="card.title"
+      [description]="card.description"
+      [icon]="card.icon"
+      [route]="card.route"
+      [color]="card.color"
+    ></app-hr-card>
+  </div>
+</div>
