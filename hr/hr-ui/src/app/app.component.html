@@ -1,18 +1,49 @@
 <div class="app-container">
-  <header>
-    <div class="container">
-      <h1>HR Management</h1>
-      <nav>
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Dashboard</a>
-        <a routerLink="/employees" routerLinkActive="active">Employees</a>
-        <a routerLink="/departments" routerLinkActive="active">Departments</a>
-      </nav>
-    </div>
-  </header>
+  <mat-toolbar color="primary" class="app-toolbar">
+    <button mat-icon-button (click)="toggleMobileMenu()" class="menu-button">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span class="app-title">{{title}}</span>
+    <nav class="desktop-nav">
+      <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+      <a mat-button routerLink="/employees" routerLinkActive="active">
+        <mat-icon>people</mat-icon>
+        <span>Employees</span>
+      </a>
+      <a mat-button routerLink="/departments" routerLinkActive="active">
+        <mat-icon>business</mat-icon>
+        <span>Departments</span>
+      </a>
+    </nav>
+  </mat-toolbar>
 
-  <main>
-    <div class="container">
-      <router-outlet></router-outlet>
-    </div>
-  </main>
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav [opened]="isMobileMenuOpen" [mode]="'over'" (closed)="isMobileMenuOpen = false">
+      <mat-nav-list>
+        <a mat-list-item routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="isMobileMenuOpen = false">
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <span matListItemTitle>Dashboard</span>
+        </a>
+        <a mat-list-item routerLink="/employees" routerLinkActive="active" (click)="isMobileMenuOpen = false">
+          <mat-icon matListItemIcon>people</mat-icon>
+          <span matListItemTitle>Employees</span>
+        </a>
+        <a mat-list-item routerLink="/departments" routerLinkActive="active" (click)="isMobileMenuOpen = false">
+          <mat-icon matListItemIcon>business</mat-icon>
+          <span matListItemTitle>Departments</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <main>
+        <div class="container">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
 </div>
