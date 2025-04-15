@@ -8,8 +8,45 @@
     padding: 1.5rem;
   }
 
+  .title {
+    font-size: 1.875rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #1f2937;
+  }
+
   mat-tree {
     @apply bg-transparent;
+  }
+}
+
+// Loading and error states
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+
+  p {
+    margin: 1rem 0;
+    color: #4b5563;
+  }
+}
+
+.error-container {
+  mat-icon {
+    font-size: 2rem;
+    height: 2rem;
+    width: 2rem;
+    color: #dc2626;
+    margin-bottom: 0.5rem;
+  }
+
+  button {
+    margin-top: 1rem;
   }
 }
 

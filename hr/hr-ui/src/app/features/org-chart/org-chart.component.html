@@ -2,7 +2,21 @@
   <h1 class="title">Organization Chart</h1>
 
   <mat-card class="org-tree-card">
-    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+    <!-- Loading spinner -->
+    <div *ngIf="isLoading" class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading organization chart...</p>
+    </div>
+
+    <!-- Error message -->
+    <div *ngIf="error" class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-raised-button color="primary" (click)="loadOrgChart()">Retry</button>
+    </div>
+
+    <!-- Org chart tree -->
+    <mat-tree *ngIf="!isLoading && !error" [dataSource]="dataSource" [treeControl]="treeControl">
       <!-- Tree node template -->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding [ngClass]="getNodeClass(node)">
         <div class="node-content">

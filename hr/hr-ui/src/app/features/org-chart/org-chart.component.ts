@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTreeModule, MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,8 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { OrgChartService } from './services/org-chart.service';
+import { OrgChartAdapter } from './adapters/org-chart-adapter';
+import { catchError, finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
 
-interface OrgNode {
+export interface OrgNode {
   name: string;
   type: 'org' | 'department' | 'job';
   status?: 'occupied' | 'vacant';
@@ -35,12 +40,13 @@ interface FlatNode {
     MatIconModule,
     MatButtonModule,
     MatCardModule,
-    MatChipsModule
+    MatChipsModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './org-chart.component.html',
   styleUrls: ['./org-chart.component.scss']
 })
-export class OrgChartComponent {
+export class OrgChartComponent implements OnInit {
   private _transformer = (node: OrgNode, level: number): FlatNode => {
     return {
       expandable: !!node.children && node.children.length > 0,
@@ -66,9 +72,76 @@ export class OrgChartComponent {
   );
 
   dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener);
+  isLoading = false;
+  error: string | null = null;
 
-  constructor() {
-    this.dataSource.data = [
+  constructor(private orgChartService: OrgChartService) {}
+
+  ngOnInit(): void {
+    this.loadOrgChart();
+  }
+
+  loadOrgChart(): void {
+    this.isLoading = true;
+    this.error = null;
+
+    this.orgChartService.getOrgChart()
+      .pipe(
+        catchError(error => {
+          this.error = 'Failed to load organization chart data. Please try again later.';
+          console.error('Error loading org chart:', error);
+          // Return a fallback data structure
+          return of({
+            id: '0',
+            name: 'TechCorp International',
+            title: 'Organization',
+            department: 'Overall',
+            email: '',
+            imageUrl: '',
+            children: []
+          });
+        }),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe(data => {
+        try {
+          const orgChartData = OrgChartAdapter.convertToOrgNode(data);
+          this.dataSource.data = [orgChartData];
+          // Expand the first level by default
+          if (this.treeControl.dataNodes && this.treeControl.dataNodes.length > 0) {
+            this.treeControl.expand(this.treeControl.dataNodes[0]);
+          }
+        } catch (err) {
+          console.error('Error converting org chart data:', err);
+          this.error = 'Failed to process organization chart data.';
+          this.dataSource.data = this.getFallbackData();
+        }
+      });
+  }
+
+  hasChild = (_: number, node: FlatNode) => node.expandable;
+
+  getNodeIcon(node: FlatNode): string {
+    switch (node.type) {
+      case 'org':
+        return 'business';
+      case 'department':
+        return 'groups';
+      case 'job':
+        return node.status === 'occupied' ? 'person' : 'person_outline';
+      default:
+        return 'arrow_right';
+    }
+  }
+
+  getNodeClass(node: FlatNode): string {
+    return `node-${node.type} ${node.status || ''}`;
+  }
+
+  private getFallbackData(): OrgNode[] {
+    return [
       {
         name: 'TechCorp International',
         type: 'org',
@@ -124,78 +197,9 @@ export class OrgChartComponent {
                 position: 'Content Strategist'
               }
             ]
-          },
-          {
-            name: 'IT Department',
-            type: 'department',
-            children: [
-              {
-                name: 'IT Director',
-                type: 'job',
-                status: 'occupied',
-                employee: 'David Chen',
-                position: 'IT Director'
-              },
-              {
-                name: 'Senior Developer',
-                type: 'job',
-                status: 'vacant',
-                position: 'Senior Developer'
-              },
-              {
-                name: 'System Administrator',
-                type: 'job',
-                status: 'occupied',
-                employee: 'Anna Lee',
-                position: 'System Administrator'
-              }
-            ]
           }
         ]
       }
     ];
-  }
-
-  getNodeClass(node: FlatNode): string {
-    return `node-${node.type} ${node.status || ''}`;
-  }
-
-  hasChild = (_: number, node: FlatNode) => node.expandable;
-
-  getNodeIcon(node: FlatNode): string {
-    switch (node.type) {
-      case 'org':
-        return 'business';
-      case 'department':
-        return 'groups';
-      case 'job':
-        return node.status === 'occupied' ? 'person' : 'person_outline';
-      default:
-        return 'arrow_right';
-    }
-  }
-
-  getIconColorClass(node: FlatNode): string {
-    switch (node.type) {
-      case 'org':
-        return 'text-blue-600';
-      case 'department':
-        return 'text-green-600';
-      case 'job':
-        return node.status === 'occupied' ? 'text-purple-600' : 'text-gray-400';
-      default:
-        return '';
-    }
-  }
-
-  getNameColorClass(node: FlatNode): string {
-    switch (node.type) {
-      case 'org':
-        return 'text-lg text-blue-800 font-semibold';
-      case 'department':
-        return 'text-green-800';
-      default:
-        return 'text-gray-900';
-    }
   }
 }
