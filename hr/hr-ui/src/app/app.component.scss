@@ -96,3 +96,11 @@ main {
     }
   }
 }
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.login-btn, .logout-btn {
+  margin-left: 8px;
+}

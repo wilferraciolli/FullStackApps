@@ -18,6 +18,15 @@
         <span>Departments</span>
       </a>
     </nav>
+    <span class="spacer"></span>
+    <a mat-button routerLink="/auth/login" *ngIf="!isLoggedIn" class="login-btn">
+      <mat-icon>login</mat-icon>
+      <span>Login</span>
+    </a>
+    <button mat-button *ngIf="isLoggedIn" (click)="logout()" class="logout-btn">
+      <mat-icon>logout</mat-icon>
+      <span>Logout</span>
+    </button>
   </mat-toolbar>
 
   <mat-sidenav-container class="sidenav-container">
