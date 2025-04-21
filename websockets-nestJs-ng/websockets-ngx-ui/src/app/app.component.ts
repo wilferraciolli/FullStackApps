@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import {Component, inject} from '@angular/core';
+import {Router, RouterOutlet} from '@angular/router';
 import {MatToolbar} from '@angular/material/toolbar';
 import {MatIconButton} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
@@ -12,4 +12,11 @@ import {MatIcon} from '@angular/material/icon';
 })
 export class AppComponent {
   title = 'websockets-ngx-ui';
+
+  private readonly _routerService: Router = inject(Router);
+
+  public navigateToHome() {
+    this._routerService.navigate(['']);
+  }
+
 }
