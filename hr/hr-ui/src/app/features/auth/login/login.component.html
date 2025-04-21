@@ -1,0 +1,51 @@
+<div class="login-container">
+  <div class="login-card">
+    <h2 class="login-title">Login</h2>
+    
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          formControlName="username"
+          class="form-control"
+          placeholder="Enter username"
+        >
+        <div class="error-message" *ngIf="loginForm.get('username')?.errors?.['required'] && loginForm.get('username')?.touched">
+          Username is required
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-control"
+          placeholder="Password"
+        >
+        <div class="error-message" *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched">
+          Password is required
+        </div>
+        <div class="error-message" *ngIf="loginForm.get('password')?.errors?.['minlength'] && loginForm.get('password')?.touched">
+          Password must be at least 6 characters
+        </div>
+      </div>
+      
+      <div class="error-message login-error" *ngIf="loginError">
+        {{ loginError }}
+      </div>
+      
+      <button type="submit" class="login-button" [disabled]="loginForm.invalid || isLoading">
+        <span *ngIf="!isLoading">Sign in</span>
+        <span *ngIf="isLoading">Signing in...</span>
+      </button>
+      
+      <p class="signup-text">
+        Don't have an account? <a routerLink="/auth/register">Sign Up</a>
+      </p>
+    </form>
+  </div>
+</div> 

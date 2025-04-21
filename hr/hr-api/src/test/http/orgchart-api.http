@@ -1,0 +1,59 @@
+### Environment Variables
+@baseUrl = http://localhost:8080/api/org-chart
+
+### Get Full Organization Chart
+GET {{baseUrl}}
+Accept: application/json
+
+### Get Org Chart by Employee (CEO)
+GET {{baseUrl}}/employee/1
+Accept: application/json
+
+### Get Org Chart by Employee (HR Manager)
+GET {{baseUrl}}/employee/2
+Accept: application/json
+
+### Get Org Chart by Department (Executive)
+GET {{baseUrl}}/department/1
+Accept: application/json
+
+### Get Org Chart by Department (Engineering)
+GET {{baseUrl}}/department/2
+Accept: application/json
+
+### Get Department Hierarchy
+GET {{baseUrl}}/departments
+Accept: application/json
+
+### Get All Employee Hierarchies
+GET {{baseUrl}}/hierarchies
+Accept: application/json
+
+### Create New Employee Hierarchy
+POST {{baseUrl}}/hierarchies
+Content-Type: application/json
+Accept: application/json
+
+{
+  "employeeId": 1,
+  "managerId": null,
+  "departmentId": 1,
+  "positionLevel": 1
+}
+
+### Update Employee Hierarchy
+POST {{baseUrl}}/hierarchies
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": 1,
+  "employeeId": 1,
+  "managerId": null,
+  "departmentId": 1,
+  "positionLevel": 1
+}
+
+### Delete Employee Hierarchy
+DELETE {{baseUrl}}/hierarchies/3
+Accept: application/json 
