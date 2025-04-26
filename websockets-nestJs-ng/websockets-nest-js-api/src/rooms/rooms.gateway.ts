@@ -7,13 +7,15 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import {Server, Socket} from 'socket.io';
-import {Logger} from '@nestjs/common';
-import {Message} from './interfaces/message.interface';
-import {EVENT_NAME_TYPE} from "./constants/event-type.enum";
-import {ClientConnection} from "./interfaces/client-connection.interface";
-import {RoomAcknowledge} from "./interfaces/room-acknowledge.interface";
-import {MESSAGE_TYPE} from "./constants/message-type.enum";
+import { Server, Socket } from 'socket.io';
+import { Logger } from '@nestjs/common';
+import { Message } from './interfaces/message.interface';
+import { EVENT_NAME_TYPE } from './constants/event-type.enum';
+import { ClientConnection } from './interfaces/client-connection.interface';
+import { RoomAcknowledge } from './interfaces/room-acknowledge.interface';
+import { MESSAGE_TYPE } from './constants/message-type.enum';
+import { ConfigService } from '@nestjs/config';
+import { APP_ACCESS_KEY } from './constants/app.constants';
 
 @WebSocketGateway({
   cors: {
@@ -26,19 +28,25 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private _clients: Map<string, Socket> = new Map<string, Socket>();
 
-  constructor(private _logger: Logger) {
-  }
+  constructor(
+    private _logger: Logger,
+    private _configService: ConfigService,
+  ) {}
 
   public handleConnection(client: Socket): void {
-    const authHeader: string | undefined =
-      client.handshake.headers.authorization;
-    // this._logger.log('Client connected auth header ', authHeader);
+    const authHeader: string | undefined = client.handshake.query[
+      'accessKey'
+    ] as string;
+    // this._logger.log(authHeader);
 
-    const resourceIdQueryParam: string = client.handshake.query
-      .resourceId as string;
-    // this._logger.log(
-    //   'Client connected resourceId param ' + resourceIdQueryParam,
-    // );
+    if (!authHeader || !this._validateAccessKey(authHeader)) {
+      this._logger.error(`Unauthorised connection: ${client.id}`);
+      client.disconnect(true);
+
+      return;
+    }
+
+    this._clients.set(client.id, client);
 
     this._server.emit(EVENT_NAME_TYPE.CLIENT_CONNECTED, {
       clientId: client.id,
@@ -47,7 +55,8 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   public handleDisconnect(client: Socket): void {
-    // console.log('Client disconnected ', client.id);
+    this._clients.delete(client.id);
+
     this._server.emit(EVENT_NAME_TYPE.CLIENT_DISCONNECTED, {
       clientId: client.id,
       message: `Client disconnected`,
@@ -63,7 +72,11 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const client: Socket | undefined = this._clients.get(message.clientId);
 
       if (client) {
-        this._sendMessageToAllInRoomExceptsSender(client, message.roomName, message);
+        this._sendMessageToAllInRoomExceptsSender(
+          client,
+          message.roomName,
+          message,
+        );
       } else {
         // if we cant find the client, still broadcast the message as it could be that the client just disconnected
         this._sendMessageToAllInRoom(message.roomName, message);
@@ -93,7 +106,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       clientId: client.id,
       success: true,
-      roomName: data.roomName
+      roomName: data.roomName,
     } as RoomAcknowledge;
   }
 
@@ -111,7 +124,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       clientId: client.id,
       success: true,
-      roomName: data.roomName
+      roomName: data.roomName,
     } as RoomAcknowledge;
   }
 
@@ -121,14 +134,14 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() message: Message,
   ): void {
     const roomName: string | undefined = message.roomName;
-    this._logger.log('Received message from client: ', client.id)
+    this._logger.log('Received message from client: ', client.id);
 
     if (roomName) {
       // Only send the message to clients watching this room
       if (message.replyToSender) {
         this._sendMessageToAllInRoom(roomName, message);
       } else {
-        this._sendMessageToAllInRoomExceptsSender(client, roomName, message)
+        this._sendMessageToAllInRoomExceptsSender(client, roomName, message);
       }
       // this._logger.log(`Message sent for resource ${message.resourceId}`);
     } else {
@@ -140,12 +153,25 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private _sendMessageToAllInRoom(roomName: string, message: Message): void {
-    this._server.to(roomName)
-      .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+    this._server.to(roomName).emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
   }
 
-  private _sendMessageToAllInRoomExceptsSender(client: Socket, roomName: string, message: Message): void {
-    client.to(roomName)
-      .emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+  private _sendMessageToAllInRoomExceptsSender(
+    client: Socket,
+    roomName: string,
+    message: Message,
+  ): void {
+    client.to(roomName).emit(EVENT_NAME_TYPE.MESSAGE_REPLY, message);
+  }
+
+  private _validateAccessKey(authHeader: string): boolean {
+    const accessKey: string | undefined =
+      this._configService.get<string>(APP_ACCESS_KEY);
+
+    if (!accessKey) {
+      this._logger.fatal('No access key environment variable set');
+    }
+
+    return authHeader === accessKey;
   }
 }

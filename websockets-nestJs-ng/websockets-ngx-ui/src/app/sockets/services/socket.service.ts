@@ -13,8 +13,8 @@ export const socketConfig: SocketIoConfig = {
   options: {
     transports: ['websocket'],
     reconnection: true,
-    extraHeaders: {
-      Authorization: 'your-auth-token' // Optional: add if your server requires authentication
+    query: {
+      'accessKey': 'secretKey'
     }
   }
 };
@@ -24,6 +24,7 @@ export const socketConfig: SocketIoConfig = {
 })
 export class SocketService {
   constructor(private socket: Socket) {
+    // this.socket.ioSocket.io.opts.query = { Authorization: 'secretKey' };
   }
 
   // Send a message to the server

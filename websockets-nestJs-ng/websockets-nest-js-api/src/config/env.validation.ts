@@ -6,7 +6,9 @@ export function validateEnv(config: Record<string, unknown>) {
       .valid('development', 'production', 'test')
       .default('development'),
     APP_API_PORT: Joi.number().default(3000),
-    APP_NAME: Joi.string().required()
+    APP_NAME: Joi.string().required(),
+    APP_ACCESS_KEY: Joi.string().required(),
+    APP_HTTP_ACCESS_KEY: Joi.string().required(),
   });
 
   const { error, value } = schema.validate(config, { allowUnknown: true });

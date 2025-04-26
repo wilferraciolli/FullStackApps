@@ -1,4 +1,4 @@
 export interface ClientConnection {
-  clientId: string,
-  message: string,
+  clientId: string;
+  message: string;
 }
