@@ -1,4 +1,4 @@
-import {Component, computed, OnDestroy, OnInit, Signal, signal, WritableSignal} from '@angular/core';
+import {Component, computed, inject, OnDestroy, OnInit, Signal, signal, WritableSignal} from '@angular/core';
 import {MatButton} from '@angular/material/button';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {NgForOf} from '@angular/common';
@@ -8,6 +8,8 @@ import {Subscription} from 'rxjs';
 import {MessageType} from '../../sockets/constants/message-type.constant';
 import {EventType} from '../../sockets/constants/event-type.constant';
 import {ClientConnection} from '../../sockets/interfaces/client-connection.interface';
+import {WebsocketError} from '../../sockets/interfaces/error.interface';
+import {MatSnackBar} from '@angular/material/snack-bar';
 
 @Component({
   selector: 'wt-room-list',
@@ -31,17 +33,26 @@ export class RoomListComponent implements OnInit, OnDestroy {
   private connectedSubscription?: Subscription | null = null;
   private disconnectedSubscription?: Subscription | null = null;
 
+  private errorSubscription: Subscription | null = null;
+  private connectionErrorSubscription: Subscription | null = null;
+
   public clientId: Signal<string> = computed(() => this._clientId());
   public roomId: Signal<number> = computed(() => this._roomId());
 
-  constructor(private socketService: SocketService) {
+  private _snackBar: MatSnackBar = inject(MatSnackBar);
+  private _socketService: SocketService = inject(SocketService);
+
+  constructor() {
   }
 
   public async ngOnInit(): Promise<void> {
-    this.messageSubscription = this.socketService.onMessage<Message>(EventType.MESSAGE_REPLY)
+    this.messageSubscription = this._socketService.onMessage<Message>(EventType.MESSAGE_REPLY)
       .subscribe({
         next: (message: Message) => {
           console.log('Message received ', message)
+          this._snackBar.open('Message received', 'X', {
+            duration: 2000,
+          });
           this.messages.update((messages: Message[]) => [...messages, message]);
         },
         error: (err) => {
@@ -49,19 +60,22 @@ export class RoomListComponent implements OnInit, OnDestroy {
         }
       });
 
-    this.connectedSubscription = this.socketService.onClientConnected()
+    this.connectedSubscription = this._socketService.onClientConnected()
       .subscribe({
         next: (message: ClientConnection) => {
           console.log('Client connected ', message)
-          // how to know when I am the one that just connected
-         // this._clientId.set(message.clientId);
+          this._snackBar.open('Client connected', 'X', {
+            duration: 2000,
+          });
+          // TODO how to know when I am the one that just connected, the below method override the latest connected client
+          // this._clientId.set(message.clientId);
         },
         error: (err) => {
           console.error('Socket error:', err);
         }
       });
 
-    this.disconnectedSubscription = this.socketService.onClientDisconnected()
+    this.disconnectedSubscription = this._socketService.onClientDisconnected()
       .subscribe({
         next: (message: ClientConnection) => {
           console.log('Client disconnected ', message)
@@ -72,29 +86,45 @@ export class RoomListComponent implements OnInit, OnDestroy {
         }
       });
 
+    this.connectionErrorSubscription = this._socketService.onConnectionError()
+      .subscribe((error: WebsocketError) => {
+        console.log('error')
+        this._snackBar.open(`Error ${error.message}`, 'X', {
+          duration: 2000,
+        });
+      });
+
+    this.errorSubscription = this._socketService.onConnectionError()
+      .subscribe((error: WebsocketError) => {
+        console.log('error')
+        this._snackBar.open(`Connection error ${error.message}`, 'X', {
+          duration: 2000,
+        });
+      });
+
     await this.joinRoom(this.roomId());
 
-    // this.socketService.connect();
+    // this._socketService.connect();
     //
-    // this.socketService
+    // this._socketService
     //   .on<SimpleMessage>('client-connected')
     //   .subscribe((message: SimpleMessage) => {
     //     this._clientId.set(message.clientId);
     //   });
     //
     // // Important: Join the current room after connection
-    // const response: RoomAcknowledge = await this.socketService.joinRoom({resourceId: this._roomId().toString()});
+    // const response: RoomAcknowledge = await this._socketService.joinRoom({resourceId: this._roomId().toString()});
     // console.log('room ack ', response)
     //
     // // Listen for incoming messages to the room
-    // this.socketService
+    // this._socketService
     //   .on<Message>('room-message-reply')
     //   .subscribe((message: Message) => {
     //     console.log('received message resource-update ', message)
     //     this.messages.push(message);
     //   });
 
-    // this.messageSub = this.socketService.onMessage<Message>('message-reply')
+    // this.messageSub = this._socketService.onMessage<Message>('message-reply')
     //   .subscribe(message => {
     //     this.messages.push(message);
     //   });
@@ -112,6 +142,14 @@ export class RoomListComponent implements OnInit, OnDestroy {
     if (this.disconnectedSubscription) {
       this.disconnectedSubscription.unsubscribe();
     }
+
+    if (this.connectionErrorSubscription) {
+      this.connectionErrorSubscription.unsubscribe();
+    }
+
+    if (this.errorSubscription) {
+      this.errorSubscription.unsubscribe();
+    }
   }
 
   public sendMessage(): void {
@@ -126,7 +164,7 @@ export class RoomListComponent implements OnInit, OnDestroy {
         timestamp: '2025-01-01T09:00:00Z'
       }
 
-      this.socketService.sendMessage(MessageType.MESSAGE, message);
+      this._socketService.sendMessage(MessageType.MESSAGE, message);
 
       this.newMessage = '';
     }
@@ -138,12 +176,15 @@ export class RoomListComponent implements OnInit, OnDestroy {
 
   public async joinRoom(roomNumber: number): Promise<void> {
     const [leaveRoomResponse, joinRoomResponse] = await Promise.all([
-      this.socketService.leaveRoom({roomName: this._buildRoomName(this._roomId())}),
-      this.socketService.joinRoom({roomName: this._buildRoomName(roomNumber)})
+      this._socketService.leaveRoom({roomName: this._buildRoomName(this._roomId())}),
+      this._socketService.joinRoom({roomName: this._buildRoomName(roomNumber)})
     ]);
 
     console.log('Left room:', leaveRoomResponse);
     console.log('Joined room:', joinRoomResponse);
+    this._snackBar.open(`joined room ${roomNumber}`, 'X', {
+      duration: 2000,
+    });
 
     this.messages.set([]);
     this._roomId.set(roomNumber);

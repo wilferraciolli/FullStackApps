@@ -1,6 +1,6 @@
 import {Socket, SocketIoConfig} from 'ngx-socket-io';
 import {Injectable} from '@angular/core';
-import {Observable} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 import {MessageType} from '../constants/message-type.constant';
 import {Message} from '../interfaces/message.interface';
 import {Room} from '../interfaces/room.interface';
@@ -8,6 +8,7 @@ import {RoomAcknowledge} from '../interfaces/room-acknowledge.interface';
 import {EventType} from '../constants/event-type.constant';
 import {ClientConnection} from '../interfaces/client-connection.interface';
 import { environment } from '../../../environments/environment';
+import {WebsocketError} from '../interfaces/error.interface';
 
 export const socketConfig: SocketIoConfig = {
   url: environment.websocketsUrl,
@@ -24,8 +25,11 @@ export const socketConfig: SocketIoConfig = {
   providedIn: 'root'
 })
 export class SocketService {
+  private _errorSubject: Subject<WebsocketError> = new Subject<WebsocketError>();
+  private _errorConnectionSubject: Subject<WebsocketError> = new Subject<WebsocketError>();
+
   constructor(private socket: Socket) {
-    // this.socket.ioSocket.io.opts.query = { Authorization: 'secretKey' };
+    this._setUpErrorListeners();
   }
 
   // Send a message to the server
@@ -56,6 +60,41 @@ export class SocketService {
 
   public async leaveRoom(data: Room): Promise<RoomAcknowledge> {
     return this._roomAction(MessageType.LEAVE_ROOM, data);
+  }
+
+  /**
+   * Method to subscribe to generic errors.
+   */
+  public onError(): Observable<WebsocketError> {
+    return this._errorSubject.asObservable();
+  }
+
+  /**
+   * Method to subscribe to connection errors.
+   */
+  public onConnectionError(): Observable<WebsocketError> {
+    return this._errorConnectionSubject.asObservable();
+  }
+
+  /**
+   * Helper method to check if websocket is connected.
+   */
+  public isConnected(): boolean {
+    return this.socket.ioSocket.connected;
+  }
+
+  /**
+   * Helper method to manually connect a client.
+   */
+  public connectClient(): void {
+    this.socket.connect();
+  }
+
+  /**
+   * Helper method to manually disconnect a client.
+   */
+  public disconnectClient(): void {
+    this.socket.disconnect();
   }
 
   private async _roomAction(eventName: string, data: Room): Promise<RoomAcknowledge> {
@@ -116,6 +155,33 @@ export class SocketService {
       return () => {
         this.socket.off(EventType.CLIENT_DISCONNECTED);
       }
+    });
+  }
+
+  private _setUpErrorListeners(): void {
+    // handle generic errors
+    this.socket.ioSocket.on(EventType.ERROR, (error: WebsocketError): void => {
+      this._errorSubject.next(error);
+    });
+
+    this.socket.ioSocket.on(EventType.ERROR_CONNECTION, (error: any): void => {
+      this._errorConnectionSubject.next(error);
+    });
+
+    this.socket.ioSocket.on(EventType.RECONNECT_ATTEMPT, (attemptNumber: number): void => {
+      this._errorConnectionSubject.next({
+        status: 400,
+        message: `Failed attempt to reconnect ${attemptNumber}`,
+        error: EventType.RECONNECT_ATTEMPT
+      });
+    });
+
+    this.socket.ioSocket.on(EventType.RECONNECT_FAILED, (): void => {
+      this._errorConnectionSubject.next({
+        status: 400,
+        message: `Failed to reconnect`,
+        error: EventType.RECONNECT_FAILED
+      });
     });
   }
 }
