@@ -12,3 +12,6 @@ Angular websockets project
    npm install @types/socket.io-client
 ```
 
+### Env files
+This app uses the environment files
+it is used based on the dev and prod files, according to the build flag set on `angular.json`

@@ -7,14 +7,15 @@ import {Room} from '../interfaces/room.interface';
 import {RoomAcknowledge} from '../interfaces/room-acknowledge.interface';
 import {EventType} from '../constants/event-type.constant';
 import {ClientConnection} from '../interfaces/client-connection.interface';
+import { environment } from '../../../environments/environment';
 
 export const socketConfig: SocketIoConfig = {
-  url: 'http://localhost:3001',
+  url: environment.websocketsUrl,
   options: {
     transports: ['websocket'],
     reconnection: true,
     query: {
-      'accessKey': 'secretKey'
+      'accessKey': environment.accessKey
     }
   }
 };
