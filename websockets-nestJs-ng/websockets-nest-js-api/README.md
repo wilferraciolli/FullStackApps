@@ -8,6 +8,14 @@ To use this serve
 * Join at least 1 room
 * Handle messages sent from the server (only clients connected to a room will receive the message)
 
+## Docker 
+To run this in docker either run the docker file, or docker-compose.
+For docker compose 
+```bash
+    docker compose up --build
+```
+
+
 #### Connect to server
 
 The websocket is found on this address and port`http://localhost:3001`, upon connecting to the server,
@@ -153,6 +161,30 @@ const config = new DocumentBuilder()
 const document = SwaggerModule.createDocument(app, config);
 SwaggerModule.setup('api', app, document);
 ```
+
+
+### Health check 
+```bash
+    npm install @nestjs/terminus @nestjs/common @nestjs/axios axios
+```
+For Terminus to work with health check, create a controller on the main module
+```typescript
+@Controller('health')
+export class HealthController {
+  constructor(private health: HealthCheckService) {}
+
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([
+      // Basic check that the service is running
+      () => ({ status: 'ok' }),
+      // Add database, redis or other dependency checks as needed
+    ]);
+  }
+}
+```
+
 
 ## Create Gateway
 
