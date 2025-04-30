@@ -1,0 +1,4 @@
+<div class="chat-message-container"
+     [ngClass]="{'chat-message-self': isSelfMessage()}">
+  <strong>{{ message.clientId }} : </strong> {{ message.message }}
+</div>

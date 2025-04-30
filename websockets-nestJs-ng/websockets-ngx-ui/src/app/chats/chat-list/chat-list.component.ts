@@ -10,6 +10,9 @@ import {ClientConnection} from '../../sockets/interfaces/client-connection.inter
 import {MessageType} from '../../sockets/constants/message-type.constant';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {WebsocketError} from '../../sockets/interfaces/error.interface';
+import {RoomAcknowledge} from '../../sockets/interfaces/room-acknowledge.interface';
+import {ChatMessageComponent} from '../chat-message/chat-message.component';
+import {ChatEventType} from '../constants/chat-event-type.enum';
 
 @Component({
   selector: 'wt-chat-list',
@@ -18,6 +21,7 @@ import {WebsocketError} from '../../sockets/interfaces/error.interface';
     NgForOf,
     ReactiveFormsModule,
     FormsModule,
+    ChatMessageComponent,
   ],
   templateUrl: './chat-list.component.html',
   styleUrl: './chat-list.component.scss'
@@ -28,7 +32,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
   messageInput = new FormControl('');
   private _clientId: WritableSignal<string> = signal('');
-  private _roomId: WritableSignal<number> = signal(4); // this is set to 4 as the chat initial id
+  private _roomId: WritableSignal<number> = signal(1);
   private messageSubscription: Subscription | null = null;
   private connectedSubscription?: Subscription | null = null;
   private disconnectedSubscription?: Subscription | null = null;
@@ -54,7 +58,13 @@ export class ChatListComponent implements OnInit, OnDestroy {
             duration: 2000,
           });
 
-          this.messages.update((messages: Message[]) => [...messages, message]);
+          if (message.messageType === ChatEventType.COMMENT_ADDED) {
+            this.messages.update((messages: Message[]) => [...messages, message]);
+          } else if (message.messageType === ChatEventType.USER_TYPING) {
+            this._snackBar.open(`User is typing ${message.clientId}`, 'X', {
+              duration: 2000,
+            });
+          }
         },
         error: (err) => {
           console.error('Socket error:', err);
@@ -87,7 +97,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
         }
       });
 
-
     this.connectionErrorSubscription = this._socketService.onConnectionError()
       .subscribe((error: WebsocketError) => {
         console.log('error')
@@ -105,31 +114,6 @@ export class ChatListComponent implements OnInit, OnDestroy {
       });
 
     await this.joinRoom(this.roomId());
-
-    // this._socketService.connect();
-    //
-    // this._socketService
-    //   .on<SimpleMessage>('client-connected')
-    //   .subscribe((message: SimpleMessage) => {
-    //     this._clientId.set(message.clientId);
-    //   });
-    //
-    // // Important: Join the current room after connection
-    // const response: RoomAcknowledge = await this._socketService.joinRoom({resourceId: this._roomId().toString()});
-    // console.log('room ack ', response)
-    //
-    // // Listen for incoming messages to the room
-    // this._socketService
-    //   .on<Message>('room-message-reply')
-    //   .subscribe((message: Message) => {
-    //     console.log('received message resource-update ', message)
-    //     this.messages.push(message);
-    //   });
-
-    // this.messageSub = this._socketService.onMessage<Message>('message-reply')
-    //   .subscribe(message => {
-    //     this.messages.push(message);
-    //   });
   }
 
   public ngOnDestroy(): void {
@@ -158,10 +142,10 @@ export class ChatListComponent implements OnInit, OnDestroy {
     if (this.newMessage.trim()) {
       const message: Message = {
         id: 'id',
-        clientId: 'clientId',
+        clientId: this._clientId(),
         roomName: this._buildRoomName(this._roomId()),
         message: this.newMessage,
-        messageType: 'comment-added',
+        messageType: ChatEventType.COMMENT_ADDED,
         replyToSender: true,
         timestamp: '2025-01-01T09:00:00Z'
       }
@@ -172,15 +156,33 @@ export class ChatListComponent implements OnInit, OnDestroy {
     }
   }
 
+  public sendUserTypingMessage(): void {
+    if (this.newMessage.length > 3) {
+      const message: Message = {
+        id: 'id',
+        clientId: this._clientId(),
+        roomName: this._buildRoomName(this._roomId()),
+        message: 'User is typing',
+        messageType: ChatEventType.USER_TYPING,
+        replyToSender: false,
+        timestamp: '2025-01-01T09:00:00Z'
+      }
+
+      this._socketService.sendMessage(MessageType.MESSAGE, message);
+    }
+  }
+
   navigateToRoom(number: number) {
 
   }
 
   public async joinRoom(roomNumber: number): Promise<void> {
-    const [leaveRoomResponse, joinRoomResponse] = await Promise.all([
+    const [leaveRoomResponse, joinRoomResponse]: [RoomAcknowledge, RoomAcknowledge] = await Promise.all([
       this._socketService.leaveRoom({roomName: this._buildRoomName(this._roomId())}),
       this._socketService.joinRoom({roomName: this._buildRoomName(roomNumber)})
     ]);
+
+    this._clientId.set(joinRoomResponse.clientId);
 
     console.log('Left room:', leaveRoomResponse);
     console.log('Joined room:', joinRoomResponse);
@@ -193,7 +195,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
   }
 
   private _buildRoomName(roomId: number): string {
-    return `room-${roomId}`
+    return `chat-${roomId}`
   }
 }
 

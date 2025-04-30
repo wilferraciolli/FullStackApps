@@ -1,27 +1,33 @@
 <section class="chat-list-container">
   <div class="chat-list-button">
-    <button mat-button (click)="joinRoom(4)">Chat 1</button>
+    <button mat-button (click)="joinRoom(1)">Chat 1</button>
   </div>
 
   <div class="chat-list-button">
-    <button mat-button (click)="joinRoom(5)">Chat2</button>
+    <button mat-button (click)="joinRoom(2)">Chat 2</button>
   </div>
 
   <div class="chat-list-button">
-    <button mat-button (click)="joinRoom(6)">Chat 3</button>
+    <button mat-button (click)="joinRoom(3)">Chat 3</button>
   </div>
 </section>
-<div class="chat-container">
-  <div class="messages">
-    <div *ngFor="let msg of messages()" class="message">
-      <strong>{{ msg.roomName }}:</strong> {{ msg.message }}
+<!--<section>{{clientId()}}</section>-->
+
+<div class="chat-list-chat-container">
+  <div class="chat-list-messages">
+    <div *ngFor="let msg of messages()" class="chat-list-message">
+      <wt-chat-message
+      [clientId]="clientId()"
+      [message]="msg"/>
+
     </div>
   </div>
-  <div class="input-area">
-    <input
+  <div class="chat-list-input-area">
+    <input class="chat-list-input"
       [(ngModel)]="newMessage"
       placeholder="Type a message..."
       (keyup.enter)="sendMessage()"
+           (keyup)="sendUserTypingMessage()"
     />
     <button (click)="sendMessage()">Send</button>
   </div>

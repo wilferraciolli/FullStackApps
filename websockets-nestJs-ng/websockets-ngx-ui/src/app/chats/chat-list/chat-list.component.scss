@@ -9,28 +9,32 @@
     display: flex;
     color: white;
   }
-}
 
-.chat-container {
-  max-width: 500px;
-  margin: 0 auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-}
-.messages {
-  height: 300px;
-  overflow-y: auto;
-  margin-bottom: 10px;
-  padding: 5px;
-}
-.message {
-  margin-bottom: 5px;
-}
-.input-area {
-  display: flex;
-}
-input {
-  flex-grow: 1;
-  margin-right: 8px;
-  padding: 5px;
+  &-chat-container {
+    max-width: 500px;
+    margin: 0 auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+  }
+
+  &-messages {
+    height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 5px;
+  }
+
+  &-message {
+    margin-bottom: 5px;
+  }
+
+  &-input-area {
+    display: flex;
+  }
+
+  &-input {
+    flex-grow: 1;
+    margin-right: 8px;
+    padding: 5px;
+  }
 }

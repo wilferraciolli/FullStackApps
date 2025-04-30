@@ -1,0 +1,11 @@
+.chat-message {
+  &-container {
+    display: flex;
+    justify-content: flex-start;
+    padding: 10px;
+  }
+
+  &-self {
+    justify-content: flex-end;
+  }
+}
