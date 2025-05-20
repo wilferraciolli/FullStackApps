@@ -1,19 +1,29 @@
 .org-chart-container {
-  padding: 1.5rem;
+  @apply p-6 bg-gray-50 min-h-screen;
 
   .org-tree-card {
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    padding: 1.5rem;
+    @apply bg-white rounded-lg shadow-md p-6 max-w-6xl mx-auto;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      @apply shadow-lg;
+    }
   }
 
   .title {
-    font-size: 1.875rem;
-    font-weight: 600;
-    margin-bottom: 2rem;
-    text-align: center;
-    color: #1f2937;
+    @apply text-3xl font-bold mb-8 text-center text-gray-800;
+    position: relative;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      width: 60px;
+      height: 3px;
+      @apply bg-blue-600;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
   }
 
   mat-tree {
@@ -23,67 +33,64 @@
 
 // Loading and error states
 .loading-container, .error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
+  @apply flex flex-col items-center justify-center p-8 text-center;
 
   p {
-    margin: 1rem 0;
-    color: #4b5563;
+    @apply my-4 text-gray-600;
+  }
+}
+
+.loading-container {
+  mat-spinner {
+    @apply mb-2;
   }
 }
 
 .error-container {
   mat-icon {
-    font-size: 2rem;
-    height: 2rem;
-    width: 2rem;
-    color: #dc2626;
-    margin-bottom: 0.5rem;
+    @apply text-4xl text-red-600 mb-2;
   }
 
   button {
-    margin-top: 1rem;
+    @apply mt-4 transition-all;
+    
+    &:hover {
+      @apply shadow-md;
+    }
   }
 }
 
 .node-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
+  @apply flex items-center gap-4 py-2 px-1 rounded-md transition-all;
+  
+  &:hover {
+    @apply bg-gray-50;
+  }
 
   .node-icon {
-    font-size: 1.5rem;
+    @apply text-2xl transition-transform;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
   }
 
   .node-info {
-    display: flex;
-    flex-direction: column;
+    @apply flex flex-col;
 
     .node-name {
-      font-weight: 500;
-      color: #1a202c;
+      @apply font-medium text-gray-900;
     }
 
     .node-details {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-top: 0.25rem;
+      @apply flex items-center gap-3 mt-1 flex-wrap;
 
       .employee-name {
-        font-size: 0.875rem;
-        color: #4a5568;
-        font-weight: 500;
+        @apply text-sm text-gray-700 font-medium;
       }
 
       .position {
-        font-size: 0.875rem;
-        color: #718096;
+        @apply text-sm text-gray-500 italic;
       }
     }
   }
@@ -92,75 +99,129 @@
 // Node type styles
 .node-org {
   .node-icon {
-    color: #3182ce;
+    @apply text-blue-600;
   }
   .node-name {
-    font-size: 1.125rem;
-    color: #2c5282;
-    font-weight: 600;
+    @apply text-lg text-blue-800 font-semibold;
   }
 }
 
 .node-department {
   .node-icon {
-    color: #38a169;
+    @apply text-green-600;
   }
   .node-name {
-    color: #276749;
+    @apply text-green-800;
   }
 }
 
 .node-job {
   .node-icon {
     &.occupied {
-      color: #805ad5;
+      @apply text-purple-600;
     }
     &.vacant {
-      color: #a0aec0;
+      @apply text-gray-400;
     }
+  }
+  
+  .node-name {
+    @apply text-gray-800;
   }
 }
 
 // Tree structure styles
 .mat-tree-node {
-  min-height: 48px;
+  min-height: 54px;
+  @apply transition-all;
 }
 
 .nested-node {
-  overflow: hidden;
+  @apply overflow-hidden transition-all;
 
   &.expanded {
-    border-left: 2px solid #e2e8f0;
-    margin-left: 2.5rem;
+    @apply border-l-2 border-gray-200 ml-10 pl-2;
   }
 }
 
 .toggle-btn {
-  color: #718096;
+  @apply text-gray-500 transition-all;
 
   &:hover {
-    background-color: #f7fafc;
+    @apply bg-gray-100 text-gray-800;
+    transform: rotate(5deg);
   }
 }
 
 // Material overrides
 ::ng-deep {
+  .mat-mdc-card {
+    @apply overflow-visible;
+  }
+  
   .mat-tree {
-    background: transparent;
+    @apply bg-transparent;
   }
 
   .mat-tree-node {
-    min-height: 48px;
+    min-height: 54px;
   }
 
-  mat-chip {
+  .mat-mdc-chip {
+    @apply font-medium text-xs;
+    
     &.vacant {
-      background-color: #fed7d7 !important;
-      color: #c53030 !important;
+      @apply bg-red-100 text-red-700;
     }
     &.occupied {
-      background-color: #c6f6d5 !important;
-      color: #2f855a !important;
+      @apply bg-green-100 text-green-700;
+    }
+  }
+  
+  .mat-icon-button {
+    @apply transition-all;
+    
+    &:hover {
+      @apply bg-gray-100;
+    }
+  }
+  
+  // Animation for expanding/collapsing nodes
+  .mat-nested-tree-node {
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .org-chart-container {
+    @apply p-3;
+    
+    .org-tree-card {
+      @apply p-3;
+    }
+    
+    .title {
+      @apply text-2xl mb-4;
+    }
+  }
+  
+  .node-content {
+    @apply gap-2;
+    
+    .node-icon {
+      @apply text-xl;
+    }
+    
+    .node-info {
+      .node-name {
+        @apply text-base;
+      }
+      
+      .node-details {
+        @apply flex-col items-start gap-1;
+      }
     }
   }
 }

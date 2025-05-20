@@ -11,17 +11,21 @@ export class AuthService {
   
   constructor(private http: HttpClient) { }
   
-  login(username: string, password: string): Observable<any> {
+  login(username: string, password: string, rememberMe: boolean = false): Observable<any> {
     // For demonstration purposes, we'll simulate a successful login with a mock response
     // In a real application, you would call your API
-    // return this.http.post<any>(`${this.apiUrl}/login`, { username, password });
+    // return this.http.post<any>(`${this.apiUrl}/login`, { username, password, rememberMe });
     
     // Mock login - replace with actual API call
     if (username === 'admin' && password === 'password') {
       const user = { username, role: 'admin', token: 'fake-jwt-token' };
       return of(user).pipe(
         tap(user => {
-          localStorage.setItem('currentUser', JSON.stringify(user));
+          if (rememberMe) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+          } else {
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+          }
         })
       );
     }
@@ -31,16 +35,19 @@ export class AuthService {
   }
   
   logout(): void {
-    // Remove user from local storage
+    // Remove user from local storage and session storage
     localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('currentUser');
   }
   
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('currentUser');
+    return !!localStorage.getItem('currentUser') || !!sessionStorage.getItem('currentUser');
   }
   
   getCurrentUser(): any {
-    const user = localStorage.getItem('currentUser');
-    return user ? JSON.parse(user) : null;
+    const localUser = localStorage.getItem('currentUser');
+    const sessionUser = sessionStorage.getItem('currentUser');
+    
+    return localUser ? JSON.parse(localUser) : sessionUser ? JSON.parse(sessionUser) : null;
   }
 } 
