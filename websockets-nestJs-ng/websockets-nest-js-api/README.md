@@ -46,7 +46,8 @@ interface RoomAcknowledge {
 The following Message payload is used to send messages, once a message has come in
 then the server will forward it to the every client connected to the roomId
 
-```interface Message {
+```typescript
+interface Message {
   id: string;
   clientId: string;
   roomName: string;
