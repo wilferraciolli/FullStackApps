@@ -1,5 +1,6 @@
 export interface RoomAcknowledge {
   clientId: string;
-  success: boolean
+  clientName: string;
+  success: boolean;
   roomName: string;
 }
