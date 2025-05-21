@@ -36,7 +36,8 @@ room will return the following response
 ```typescript
 interface RoomAcknowledge {
   clientId: string;
-  success: boolean
+  clientName: string;
+  success: boolean;
   resourceId: string;
 }
 ```
@@ -50,6 +51,7 @@ then the server will forward it to the every client connected to the roomId
 interface Message {
   id: string;
   clientId: string;
+  clientName: string;
   roomName: string;
   messageType: string;
   message: string;
@@ -66,6 +68,7 @@ You can use http to send messages and broadcast to all clients
     -d '{
       "id": "cc5848cf-92b2-4f1f-bdb9-340fa0ad1886",
       "clientId": "sender-client-id",
+      "clientName": "sneder Client Name",
       "roomName": "roomNameChosenByClient",
       "messageType": "comment-added",
       "message": "Hello, everyone!",
@@ -81,6 +84,7 @@ You can use http to send messages to a single client
     -d '{
       "id": "cc5848cf-92b2-4f1f-bdb9-340fa0ad1886",
       "clientId": "sender-client-id",
+      "clientName": "sneder Client Name",
       "roomName": "roomNameChosenByClient",
       "messageType": "comment-added",
       "message": "Hello, everyone!",

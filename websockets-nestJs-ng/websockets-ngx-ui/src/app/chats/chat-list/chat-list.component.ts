@@ -53,15 +53,15 @@ export class ChatListComponent implements OnInit, OnDestroy {
     this.messageSubscription = this._socketService.onMessage<Message>(EventType.MESSAGE_REPLY)
       .subscribe({
         next: (message: Message) => {
-          console.log('Message received ', message)
-          this._snackBar.open('Message received', 'X', {
-            duration: 2000,
-          });
-
           if (message.messageType === ChatEventType.COMMENT_ADDED) {
+            console.log('Message received ', message)
+            this._snackBar.open(`Message received from ${message.clientName}`, 'X', {
+              duration: 2000,
+            });
+
             this.messages.update((messages: Message[]) => [...messages, message]);
           } else if (message.messageType === ChatEventType.USER_TYPING) {
-            this._snackBar.open(`User is typing ${message.clientId}`, 'X', {
+            this._snackBar.open(`User is typing ${message.clientName}`, 'X', {
               duration: 2000,
             });
           }
@@ -143,6 +143,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'Client Name',
         roomName: this._buildRoomName(this._roomId()),
         message: this.newMessage,
         messageType: ChatEventType.COMMENT_ADDED,
@@ -161,6 +162,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'Client Name',
         roomName: this._buildRoomName(this._roomId()),
         message: 'User is typing',
         messageType: ChatEventType.USER_TYPING,
