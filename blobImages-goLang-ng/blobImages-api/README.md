@@ -16,6 +16,13 @@ cd azure-blob-downloader
 
 
 ## Dependencies
+
+### Env files reader
+Go to Env
+```bash
+    go get github.com/joho/godotenv
+```
+
 ### Azure SDK
 ```bash
     go get github.com/Azure/azure-sdk-for-go/sdk/storage/azblob

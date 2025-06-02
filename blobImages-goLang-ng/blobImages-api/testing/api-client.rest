@@ -1,0 +1,41 @@
+### Azure Blob Storage API Tests
+### Make sure your Go server is running on localhost:8080
+
+### Variables
+@baseUrl = http://localhost:8080
+@prefix = documents/
+
+### Health Check
+GET {{baseUrl}}/health
+
+###
+
+### List All Blobs
+GET {{baseUrl}}/blobs
+
+###
+
+### List Blobs with Prefix (folder-like filtering)
+GET {{baseUrl}}/blobs?prefix={{prefix}}
+
+###
+
+### List Blobs with specific prefix
+GET {{baseUrl}}/blobs?prefix=images/
+
+###
+
+### List Blobs with another prefix
+GET {{baseUrl}}/blobs?prefix=uploads/2024/
+
+###
+
+### Test with empty prefix (should return all blobs)
+GET {{baseUrl}}/blobs?prefix=
+
+###
+
+### Test error handling - invalid endpoint
+GET {{baseUrl}}/invalid-endpoint
+
+###
