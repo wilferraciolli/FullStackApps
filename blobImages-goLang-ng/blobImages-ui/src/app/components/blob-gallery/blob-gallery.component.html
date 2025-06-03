@@ -1,0 +1,76 @@
+<div class="gallery-container">
+  <h2>Image Gallery</h2>
+
+  <div class="filters">
+    <input
+      type="text"
+      [(ngModel)]="prefixFilter"
+      (input)="loadBlobs()"
+      placeholder="Filter by prefix..."
+      class="filter-input">
+    <button (click)="loadBlobs()" class="refresh-btn">Refresh</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading images...</div>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div class="image-grid" *ngIf="!loading && blobs.length > 0">
+    <div *ngFor="let blob of blobs" class="image-card">
+      <div class="image-container">
+        <img
+          [src]="blob.url"
+          [alt]="blob.info.metadata?.['altText'] || blob.info.name"
+          (load)="onImageLoad(blob)"
+          (error)="onImageError(blob)">
+      </div>
+
+      <div class="image-info">
+        <h4>{{ blob.info.name }}</h4>
+        <p><strong>Size:</strong> {{ formatBytes(blob.info.size) }}</p>
+        <p *ngIf="blob.info.metadata?.['altText']">
+<!--          <strong>Alt Text:</strong> {{ blob.info.metadata.altText }}-->
+        </p>
+        <p *ngIf="blob.info.metadata?.['description']">
+<!--          <strong>Description:</strong> {{ blob.info.metadata.description }}-->
+        </p>
+        <p *ngIf="blob.info.metadata?.['tags']">
+<!--          <strong>Tags:</strong> {{ blob.info.metadata.tags }}-->
+        </p>
+
+        <div class="actions">
+          <button (click)="downloadImage(blob)" class="download-btn">Download</button>
+          <button (click)="viewMetadata(blob)" class="metadata-btn">View Metadata</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && blobs.length === 0" class="no-images">
+    No images found.
+  </div>
+</div>
+
+<!-- Metadata Modal -->
+<div *ngIf="selectedBlobMetadata" class="modal-overlay" (click)="closeMetadataModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>Blob Metadata</h3>
+    <div class="metadata-details">
+      @if (selectedBlobMetadata){
+        <p><strong>Name:</strong> {{ selectedBlobMetadata.name }}</p>
+        <p><strong>Size:</strong> {{ formatBytes(selectedBlobMetadata.size) }}</p>
+        <p><strong>Content Type:</strong> {{ selectedBlobMetadata.contentType }}</p>
+        <p><strong>Last Modified:</strong> {{ selectedBlobMetadata.lastModified | date:'medium' }}</p>
+        <p><strong>ETag:</strong> {{ selectedBlobMetadata.etag }}</p>
+      }
+
+      <div *ngIf="selectedBlobMetadata.metadata" class="custom-metadata">
+        <h4>Custom Metadata:</h4>
+        <div *ngFor="let meta of getMetadataEntries(selectedBlobMetadata.metadata)">
+          <strong>{{ meta.key }}:</strong> {{ meta.value }}
+        </div>
+      </div>
+    </div>
+    <button (click)="closeMetadataModal()" class="close-btn">Close</button>
+  </div>
+</div>

@@ -9,3 +9,46 @@
 
   }
 }
+
+
+.app-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+header {
+  background-color: #343a40;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  background-color: #e9ecef;
+}
+
+nav button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  background-color: #6c757d;
+  color: white;
+}
+
+nav button.active {
+  background-color: #007bff;
+}
+
+main {
+  padding: 20px;
+}
