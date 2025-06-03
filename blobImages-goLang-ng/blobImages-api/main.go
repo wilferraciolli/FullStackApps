@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,6 +34,16 @@ type ListBlobsResponse struct {
 	Container string     `json:"container"`
 	Blobs     []BlobInfo `json:"blobs"`
 	Count     int        `json:"count"`
+}
+
+// UploadResponse represents the response after uploading a blob
+type UploadResponse struct {
+	Name        string            `json:"name"`
+	Size        int64             `json:"size"`
+	ContentType string            `json:"contentType"`
+	ETag        string            `json:"etag"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+	Message     string            `json:"message"`
 }
 
 // ErrorResponse represents an error response
@@ -149,6 +161,87 @@ func (bs *BlobService) ListBlobs(ctx context.Context, prefix string) (*ListBlobs
 	}, nil
 }
 
+// DownloadBlob downloads a blob with its metadata
+func (bs *BlobService) DownloadBlob(ctx context.Context, blobName string) ([]byte, *BlobInfo, error) {
+	// Get blob properties first to retrieve metadata
+	resp, err := bs.client.DownloadStream(ctx, bs.containerName, blobName, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to download blob: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the blob content
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read blob content: %v", err)
+	}
+
+	// Create BlobInfo with metadata
+	blobInfo := &BlobInfo{
+		Name:         blobName,
+		Size:         *resp.ContentLength,
+		LastModified: *resp.LastModified,
+	}
+
+	if resp.ContentType != nil {
+		blobInfo.ContentType = *resp.ContentType
+	}
+	if resp.ETag != nil {
+		blobInfo.ETag = string(*resp.ETag)
+	}
+
+	// Add metadata if present
+	if resp.Metadata != nil {
+		blobInfo.Metadata = make(map[string]string)
+		for key, value := range resp.Metadata {
+			if value != nil {
+				blobInfo.Metadata[key] = *value
+			}
+		}
+	}
+
+	return data, blobInfo, nil
+}
+
+// UploadBlob uploads a blob with metadata
+func (bs *BlobService) UploadBlob(ctx context.Context, blobName string, data []byte, contentType string, metadata map[string]string) (*UploadResponse, error) {
+	options := &azblob.UploadStreamOptions{}
+
+	// Add metadata
+	if metadata != nil {
+		options.Metadata = make(map[string]*string)
+		for key, value := range metadata {
+			v := value
+			options.Metadata[key] = &v
+		}
+	}
+
+	// Upload the blob
+	resp, err := bs.client.UploadStream(ctx, bs.containerName, blobName, strings.NewReader(string(data)), options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload blob: %v", err)
+	}
+
+	// If we have a content type, update it with a separate call
+	// if contentType != "" {
+	// 	_, err = bs.client.SetHTTPHeaders(ctx, bs.containerName, blobName, azblob.BlobHTTPHeaders{
+	// 		BlobContentType: &contentType,
+	// 	}, nil)
+	// 	if err != nil {
+	// 		log.Printf("Warning: Failed to set content type: %v", err)
+	// 	}
+	// }
+
+	return &UploadResponse{
+		Name:        blobName,
+		Size:        int64(len(data)),
+		ContentType: contentType,
+		ETag:        string(*resp.ETag),
+		Metadata:    metadata,
+		Message:     "Blob uploaded successfully",
+	}, nil
+}
+
 // HTTP Handlers
 
 // listBlobsHandler handles GET /blobs
@@ -179,6 +272,142 @@ func (bs *BlobService) listBlobsHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(response)
 }
 
+// downloadBlobHandler handles GET /blobs/{blobName}
+func (bs *BlobService) downloadBlobHandler(w http.ResponseWriter, r *http.Request) {
+	// Extract blob name from URL path
+	blobName := strings.TrimPrefix(r.URL.Path, "/blobs/")
+	if blobName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "BadRequest",
+			Message: "Blob name is required",
+		})
+		return
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+
+	// Download blob
+	data, blobInfo, err := bs.DownloadBlob(ctx, blobName)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "NotFound",
+			Message: fmt.Sprintf("Failed to download blob: %v", err),
+		})
+		return
+	}
+
+	// Check if client wants metadata only
+	if r.URL.Query().Get("metadata") == "true" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(blobInfo)
+		return
+	}
+
+	// Set headers for file download
+	w.Header().Set("Content-Type", blobInfo.ContentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", blobInfo.Size))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filepath.Base(blobName)))
+
+	// Add metadata as custom headers
+	if blobInfo.Metadata != nil {
+		for key, value := range blobInfo.Metadata {
+			w.Header().Set(fmt.Sprintf("X-Blob-Meta-%s", key), value)
+		}
+	}
+
+	// Write file content
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// uploadBlobHandler handles POST /blobs
+func (bs *BlobService) uploadBlobHandler(w http.ResponseWriter, r *http.Request) {
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse multipart form
+	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "BadRequest",
+			Message: fmt.Sprintf("Failed to parse form: %v", err),
+		})
+		return
+	}
+
+	// Get the file from form
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "BadRequest",
+			Message: "File is required",
+		})
+		return
+	}
+	defer file.Close()
+
+	// Read file content
+	data, err := io.ReadAll(file)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "InternalServerError",
+			Message: fmt.Sprintf("Failed to read file: %v", err),
+		})
+		return
+	}
+
+	// Get blob name (use form value or filename)
+	blobName := r.FormValue("name")
+	if blobName == "" {
+		blobName = header.Filename
+	}
+
+	// Get content type
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	// Get metadata from form values
+	metadata := make(map[string]string)
+	if altText := r.FormValue("altText"); altText != "" {
+		metadata["altText"] = altText
+	}
+	if description := r.FormValue("description"); description != "" {
+		metadata["description"] = description
+	}
+	if tags := r.FormValue("tags"); tags != "" {
+		metadata["tags"] = tags
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+
+	// Upload blob
+	response, err := bs.UploadBlob(ctx, blobName, data, contentType, metadata)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error:   "InternalServerError",
+			Message: fmt.Sprintf("Failed to upload blob: %v", err),
+		})
+		return
+	}
+
+	// Return success response
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
 // healthHandler handles GET /health
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -186,6 +415,25 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "healthy",
 		"time":   time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// corsMiddleware handles CORS for Angular frontend
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Blob-Meta-altText, X-Blob-Meta-description, X-Blob-Meta-tags")
+
+		// Handle preflight request
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -198,6 +446,8 @@ func setupRoutes(blobService *BlobService) *http.ServeMux {
 
 	// Blob operations
 	mux.HandleFunc("GET /blobs", blobService.listBlobsHandler)
+	mux.HandleFunc("GET /blobs/", blobService.downloadBlobHandler)
+	mux.HandleFunc("POST /blobs", blobService.uploadBlobHandler)
 
 	return mux
 }
@@ -236,8 +486,8 @@ func main() {
 	// Setup routes
 	mux := setupRoutes(blobService)
 
-	// Add logging middleware
-	handler := loggingMiddleware(mux)
+	// Add middleware
+	handler := corsMiddleware(loggingMiddleware(mux))
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -248,15 +498,17 @@ func main() {
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	log.Printf("Starting Azure Blob API server on port %s", port)
 	log.Printf("Health check: http://localhost:%s/health", port)
 	log.Printf("List blobs: http://localhost:%s/blobs", port)
-	log.Printf("List blobs with prefix: http://localhost:%s/blobs?prefix=documents/", port)
+	log.Printf("Download blob: http://localhost:%s/blobs/{blobName}", port)
+	log.Printf("Download blob metadata: http://localhost:%s/blobs/{blobName}?metadata=true", port)
+	log.Printf("Upload blob: POST http://localhost:%s/blobs", port)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)

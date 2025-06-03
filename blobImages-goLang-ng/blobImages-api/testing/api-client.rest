@@ -15,6 +15,16 @@ GET {{baseUrl}}/blobs
 
 ###
 
+### Get blob
+GET {{baseUrl}}/blobs/ffb23e2f-d3f5-43c8-a78e-810fc9105fff
+
+###
+
+### Get blob iamge person
+GET {{baseUrl}}/blobs/C1A1439E-0F2F-449E-B1EB-0203968A96CC
+
+###
+
 ### List Blobs with Prefix (folder-like filtering)
 GET {{baseUrl}}/blobs?prefix={{prefix}}
 

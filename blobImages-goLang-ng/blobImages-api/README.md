@@ -14,6 +14,11 @@ cd azure-blob-downloader
     go run main.go
 ```
 
+### Refreshing dependencies
+```bash
+    go run mod tidy
+```
+
 
 ## Dependencies
 
