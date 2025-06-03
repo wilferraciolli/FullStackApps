@@ -1,17 +1,9 @@
 import { Component } from '@angular/core';
-import { MatButton, MatIconButton } from '@angular/material/button';
-import {
-  MatCard,
-  MatCardActions, MatCardAvatar,
-  MatCardContent,
-  MatCardHeader,
-  MatCardImage, MatCardModule,
-  MatCardSubtitle,
-  MatCardTitle
-} from '@angular/material/card';
+import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatToolbar } from '@angular/material/toolbar';
 import { RouterOutlet } from '@angular/router';
+import { CardImageComponent } from './components/card-image/card-image.component';
 
 @Component({
   selector: 'app-root',
@@ -20,20 +12,16 @@ import { RouterOutlet } from '@angular/router';
     MatIconButton,
     MatToolbar,
     MatIcon,
-    MatCard,
-    MatCardHeader,
-    MatCardAvatar,
-    MatCardImage,
-    MatCardTitle,
-    MatCardSubtitle,
-    // MatCardModule,
-    MatCardContent,
-    MatCardActions,
-    MatButton
+    CardImageComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'blobImages-ui';
+  public title: string = 'Blob Image handler';
+  public imageIds: Array<string> = [
+    '38f9f366-96c2-4630-ae35-187132187a00',
+    'eb1f1a8b-d7cd-4b76-b1b3-2792284dcb0c'
+
+  ];
 }
