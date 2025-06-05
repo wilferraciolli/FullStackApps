@@ -7,6 +7,7 @@ import { RouterOutlet } from '@angular/router';
 import { BlobGalleryComponent } from './components/blob-gallery/blob-gallery.component';
 import { BlobUploadComponent } from './components/blob-upload/blob-upload.component';
 import { CardImageComponent } from './components/card-image/card-image.component';
+import { DynamicSvgComponent } from './svgs/dynamic-svg/dynamic-svg.component';
 
 @Component({
   selector: 'app-root',
@@ -18,7 +19,8 @@ import { CardImageComponent } from './components/card-image/card-image.component
     CardImageComponent,
     BlobUploadComponent,
     BlobGalleryComponent,
-    NgIf
+    NgIf,
+    DynamicSvgComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
