@@ -1,111 +1,144 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, map, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, forkJoin, map, Observable, of, retry, throwError, timeout } from 'rxjs';
 import { BlobInfo } from '../interfaces/blob-info';
 import { BlobListResponse } from '../interfaces/blob-list.response';
 import { BlobUploadResponse } from '../interfaces/blob-upload.response';
+import { HealthStatus } from '../interfaces/health-status';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ImageHandlerService {
-  private readonly apiUrl = 'http://localhost:8080';
+  private readonly baseUrl: string = 'http://localhost:8080';
 
   private readonly _httpClient: HttpClient = inject(HttpClient);
 
-  // List all blobs
- public listBlobs(prefix?: string): Observable<BlobListResponse> {
-    const url = `${this.apiUrl}/blobs`;
-    const params = prefix ? { prefix } : {};
+  // Loading state management
+  private loadingSubject = new BehaviorSubject<boolean>(false);
+  public loading$ = this.loadingSubject.asObservable();
 
-    // @ts-ignore
-   return this._httpClient.get<BlobListResponse>(url, { params })
-               .pipe(catchError(this.handleError));
+  private setLoading(loading: boolean): void {
+    this.loadingSubject.next(loading);
   }
 
-  // Upload a blob with metadata
-  uploadBlob(file: File, metadata: { altText?: string; description?: string; tags?: string }, customName?: string): Observable<BlobUploadResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    if (customName) {
-      formData.append('name', customName);
-    }
-
-    if (metadata.altText) {
-      formData.append('altText', metadata.altText);
-    }
-
-    if (metadata.description) {
-      formData.append('description', metadata.description);
-    }
-
-    if (metadata.tags) {
-      formData.append('tags', metadata.tags);
-    }
-
-    return this._httpClient.post<BlobUploadResponse>(`${this.apiUrl}/blobs`, formData)
-               .pipe(catchError(this.handleError));
+  /**
+   * Check if the blob service is healthy
+   */
+  checkHealth(): Observable<HealthStatus> {
+    return this._httpClient.get<HealthStatus>(`${this.baseUrl}/health`)
+               .pipe(
+                 timeout(5000),
+                 retry(2),
+                 catchError(this.handleError)
+               );
   }
 
-  // Download blob as a file
-  public downloadBlob(blobName: string): Observable<{ blob: Blob; metadata: { [key: string]: string } }> {
-    return this._httpClient.get(`${this.apiUrl}/blobs/${encodeURIComponent(blobName)}`, {
+  /**
+   * Get blob metadata without downloading the actual content
+   */
+  getBlobMetadata(blobName: string): Observable<BlobInfo> {
+    return this._httpClient.get<BlobInfo>(`${this.baseUrl}/blobs/${encodeURIComponent(blobName)}?metadata=true`)
+               .pipe(
+                 timeout(10000),
+                 retry(1),
+                 catchError(this.handleError)
+               );
+  }
+
+  /**
+   * Download blob as a data URL for image display
+   */
+  getBlobAsDataUrl(blobName: string): Observable<string> {
+    this.setLoading(true);
+
+    return this._httpClient.get(`${this.baseUrl}/blobs/${encodeURIComponent(blobName)}`, {
       responseType: 'blob',
       observe: 'response'
     }).pipe(
-      map((response: HttpResponse<Blob>) => {
-        const metadata: { [key: string]: string } = {};
+      timeout(30000),
+      map(response => {
+        this.setLoading(false);
+        const blob = response.body;
+        if (!blob) throw new Error('No blob data received');
 
-        // Extract metadata from headers
-        response.headers.keys().forEach(key => {
-          if (key.startsWith('x-blob-meta-')) {
-            const metaKey = key.replace('x-blob-meta-', '');
-            metadata[metaKey] = response.headers.get(key) || '';
+        return URL.createObjectURL(blob);
+      }),
+      catchError(error => {
+        this.setLoading(false);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Download multiple blobs concurrently
+   */
+  getMultipleBlobsAsDataUrls(blobNames: string[]): Observable<{ [key: string]: string }> {
+    this.setLoading(true);
+
+    const requests = blobNames.map(name =>
+      this.getBlobAsDataUrl(name).pipe(
+        map(dataUrl => ({ name, dataUrl })),
+        catchError(error => of({ name, dataUrl: '', error: error.message }))
+      )
+    );
+
+    return forkJoin(requests).pipe(
+      map(results => {
+        this.setLoading(false);
+        const dataUrls: { [key: string]: string } = {};
+        results.forEach(result => {
+          if ('dataUrl' in result && result.dataUrl) {
+            dataUrls[result.name] = result.dataUrl;
           }
         });
-
-        return {
-          blob: response.body!,
-          metadata
-        };
+        return dataUrls;
       }),
+      catchError(error => {
+        this.setLoading(false);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  /**
+   * Get blob with both data and metadata
+   */
+  getBlobWithMetadata(blobName: string): Observable<{ dataUrl: string; metadata: BlobInfo }> {
+    return forkJoin({
+      dataUrl: this.getBlobAsDataUrl(blobName),
+      metadata: this.getBlobMetadata(blobName)
+    }).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Get only blob metadata
-  getBlobMetadata(blobName: string): Observable<BlobInfo> {
-    return this._httpClient.get<BlobInfo>(`${this.apiUrl}/blobs/${encodeURIComponent(blobName)}?metadata=true`)
-               .pipe(catchError(this.handleError));
-  }
-
-  // Create a downloadable URL for a blob
-  createBlobUrl(blob: Blob): string {
-    return URL.createObjectURL(blob);
-  }
-
-  // Clean up blob URL
-  revokeBlobUrl(url: string): void {
-    URL.revokeObjectURL(url);
-  }
-
-  private handleError(error: HttpErrorResponse) {
+  private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An unknown error occurred';
 
     if (error.error instanceof ErrorEvent) {
       // Client-side error
-      errorMessage = `Error: ${error.error.message}`;
+      errorMessage = `Client Error: ${error.error.message}`;
     } else {
       // Server-side error
-      if (error.error && error.error.message) {
-        errorMessage = error.error.message;
-      } else {
-        errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
+      errorMessage = `Server Error: ${error.status} - ${error.message}`;
+      if (error.error?.message) {
+        errorMessage += ` (${error.error.message})`;
       }
     }
 
-    return throwError(() => new Error(errorMessage));
+    console.error('BlobService Error:', errorMessage);
+    return throwError(() => errorMessage);
   }
+
+
+
+
+
+
+
+
+
 
 }

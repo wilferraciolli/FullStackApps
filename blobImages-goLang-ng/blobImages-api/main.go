@@ -11,11 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/joho/godotenv"
 )
 
@@ -29,23 +29,6 @@ type BlobInfo struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
-// ListBlobsResponse represents the API response for listing blobs
-type ListBlobsResponse struct {
-	Container string     `json:"container"`
-	Blobs     []BlobInfo `json:"blobs"`
-	Count     int        `json:"count"`
-}
-
-// UploadResponse represents the response after uploading a blob
-type UploadResponse struct {
-	Name        string            `json:"name"`
-	Size        int64             `json:"size"`
-	ContentType string            `json:"contentType"`
-	ETag        string            `json:"etag"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Message     string            `json:"message"`
-}
-
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error   string `json:"error"`
@@ -56,6 +39,7 @@ type ErrorResponse struct {
 type BlobService struct {
 	client        *azblob.Client
 	containerName string
+	mu            sync.RWMutex // For thread-safe operations
 }
 
 // NewBlobService creates a new blob service
@@ -101,68 +85,12 @@ func NewBlobService() (*BlobService, error) {
 	}, nil
 }
 
-// ListBlobs returns all blobs in the container
-func (bs *BlobService) ListBlobs(ctx context.Context, prefix string) (*ListBlobsResponse, error) {
-	var blobs []BlobInfo
-
-	options := &azblob.ListBlobsFlatOptions{
-		Include: container.ListBlobsInclude{
-			Metadata: true,
-			Tags:     true,
-		},
-	}
-
-	// Add prefix filter if provided
-	if prefix != "" {
-		options.Prefix = &prefix
-	}
-
-	pager := bs.client.NewListBlobsFlatPager(bs.containerName, options)
-
-	for pager.More() {
-		resp, err := pager.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list blobs: %v", err)
-		}
-
-		for _, blob := range resp.Segment.BlobItems {
-			blobInfo := BlobInfo{
-				Name:         *blob.Name,
-				Size:         *blob.Properties.ContentLength,
-				LastModified: *blob.Properties.LastModified,
-			}
-
-			// Add optional properties if available
-			if blob.Properties.ContentType != nil {
-				blobInfo.ContentType = *blob.Properties.ContentType
-			}
-			if blob.Properties.ETag != nil {
-				blobInfo.ETag = string(*blob.Properties.ETag)
-			}
-
-			// Add metadata if present
-			if blob.Metadata != nil {
-				blobInfo.Metadata = make(map[string]string)
-				for key, value := range blob.Metadata {
-					if value != nil {
-						blobInfo.Metadata[key] = *value
-					}
-				}
-			}
-
-			blobs = append(blobs, blobInfo)
-		}
-	}
-
-	return &ListBlobsResponse{
-		Container: bs.containerName,
-		Blobs:     blobs,
-		Count:     len(blobs),
-	}, nil
-}
-
-// DownloadBlob downloads a blob with its metadata
+// DownloadBlob downloads a blob with its metadata (concurrent-safe)
 func (bs *BlobService) DownloadBlob(ctx context.Context, blobName string) ([]byte, *BlobInfo, error) {
+	// Use read lock for concurrent access
+	bs.mu.RLock()
+	defer bs.mu.RUnlock()
+
 	// Get blob properties first to retrieve metadata
 	resp, err := bs.client.DownloadStream(ctx, bs.containerName, blobName, nil)
 	if err != nil {
@@ -203,76 +131,80 @@ func (bs *BlobService) DownloadBlob(ctx context.Context, blobName string) ([]byt
 	return data, blobInfo, nil
 }
 
-// UploadBlob uploads a blob with metadata
-func (bs *BlobService) UploadBlob(ctx context.Context, blobName string, data []byte, contentType string, metadata map[string]string) (*UploadResponse, error) {
-	options := &azblob.UploadStreamOptions{}
+// detectContentTypeFromBytes detects content type from file magic bytes
+func detectContentTypeFromBytes(data []byte) string {
+	if len(data) < 4 {
+		return "application/octet-stream"
+	}
 
-	// Add metadata
-	if metadata != nil {
-		options.Metadata = make(map[string]*string)
-		for key, value := range metadata {
-			v := value
-			options.Metadata[key] = &v
+	// Check for common image formats
+	if len(data) >= 2 {
+		// JPEG
+		if data[0] == 0xFF && data[1] == 0xD8 {
+			return "image/jpeg"
+		}
+		// PNG
+		if len(data) >= 8 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+			return "image/png"
+		}
+		// GIF
+		if len(data) >= 6 && data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 {
+			return "image/gif"
+		}
+		// WebP
+		if len(data) >= 12 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 {
+			if len(data) >= 12 && data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
+				return "image/webp"
+			}
 		}
 	}
 
-	// Upload the blob
-	resp, err := bs.client.UploadStream(ctx, bs.containerName, blobName, strings.NewReader(string(data)), options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload blob: %v", err)
-	}
-
-	// If we have a content type, update it with a separate call
-	// if contentType != "" {
-	// 	_, err = bs.client.SetHTTPHeaders(ctx, bs.containerName, blobName, azblob.BlobHTTPHeaders{
-	// 		BlobContentType: &contentType,
-	// 	}, nil)
-	// 	if err != nil {
-	// 		log.Printf("Warning: Failed to set content type: %v", err)
-	// 	}
-	// }
-
-	return &UploadResponse{
-		Name:        blobName,
-		Size:        int64(len(data)),
-		ContentType: contentType,
-		ETag:        string(*resp.ETag),
-		Metadata:    metadata,
-		Message:     "Blob uploaded successfully",
-	}, nil
+	return "application/octet-stream"
 }
 
-// HTTP Handlers
+// getContentType determines the content type based on file extension or provided content type
+func getContentType(blobName string, providedContentType string) string {
+	log.Printf("getContentType called with blobName: %s, providedContentType: %s", blobName, providedContentType)
 
-// listBlobsHandler handles GET /blobs
-func (bs *BlobService) listBlobsHandler(w http.ResponseWriter, r *http.Request) {
-	// Set content type
-	w.Header().Set("Content-Type", "application/json")
-
-	// Get query parameters
-	prefix := r.URL.Query().Get("prefix")
-
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-	defer cancel()
-
-	// List blobs
-	response, err := bs.ListBlobs(ctx, prefix)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "InternalServerError",
-			Message: fmt.Sprintf("Failed to list blobs: %v", err),
-		})
-		return
+	if providedContentType != "" && providedContentType != "application/octet-stream" {
+		log.Printf("Using provided content type: %s", providedContentType)
+		return providedContentType
 	}
 
-	// Return success response
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	// Determine content type based on file extension
+	ext := strings.ToLower(filepath.Ext(blobName))
+	log.Printf("File extension detected: %s", ext)
+
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".svg":
+		return "image/svg+xml"
+	case ".bmp":
+		return "image/bmp"
+	case ".ico":
+		return "image/x-icon"
+	case ".tiff", ".tif":
+		return "image/tiff"
+	default:
+		// If no extension, try to detect from blob name patterns
+		lowerName := strings.ToLower(blobName)
+		if strings.Contains(lowerName, "image") || strings.Contains(lowerName, "img") || strings.Contains(lowerName, "photo") {
+			log.Printf("Detected image from blob name pattern, defaulting to image/jpeg")
+			return "image/jpeg"
+		}
+		log.Printf("No content type detected, using application/octet-stream")
+		return "application/octet-stream"
+	}
 }
 
-// downloadBlobHandler handles GET /blobs/{blobName}
+// downloadBlobHandler handles GET /blobs/{blobName} with goroutine support
 func (bs *BlobService) downloadBlobHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract blob name from URL path
 	blobName := strings.TrimPrefix(r.URL.Path, "/blobs/")
@@ -285,127 +217,96 @@ func (bs *BlobService) downloadBlobHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Create context with timeout
+	// Create context with timeout for blob download
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 
-	// Download blob
-	data, blobInfo, err := bs.DownloadBlob(ctx, blobName)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "NotFound",
-			Message: fmt.Sprintf("Failed to download blob: %v", err),
-		})
-		return
+	// Channel to receive download result
+	type downloadResult struct {
+		data     []byte
+		blobInfo *BlobInfo
+		err      error
 	}
 
-	// Check if client wants metadata only
-	if r.URL.Query().Get("metadata") == "true" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(blobInfo)
-		return
-	}
+	resultChan := make(chan downloadResult, 1)
 
-	// Set headers for file download
-	w.Header().Set("Content-Type", blobInfo.ContentType)
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", blobInfo.Size))
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filepath.Base(blobName)))
+	// Start download in a goroutine
+	go func() {
+		defer close(resultChan)
 
-	// Add metadata as custom headers
-	if blobInfo.Metadata != nil {
-		for key, value := range blobInfo.Metadata {
-			w.Header().Set(fmt.Sprintf("X-Blob-Meta-%s", key), value)
+		data, blobInfo, err := bs.DownloadBlob(ctx, blobName)
+		resultChan <- downloadResult{
+			data:     data,
+			blobInfo: blobInfo,
+			err:      err,
 		}
-	}
+	}()
 
-	// Write file content
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-}
+	// Wait for result or timeout
+	select {
+	case result := <-resultChan:
+		if result.err != nil {
+			log.Printf("Error downloading blob %s: %v", blobName, result.err)
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(ErrorResponse{
+				Error:   "NotFound",
+				Message: fmt.Sprintf("Failed to download blob: %v", result.err),
+			})
+			return
+		}
 
-// uploadBlobHandler handles POST /blobs
-func (bs *BlobService) uploadBlobHandler(w http.ResponseWriter, r *http.Request) {
-	// Set content type
-	w.Header().Set("Content-Type", "application/json")
+		// Check if client wants metadata only
+		if r.URL.Query().Get("metadata") == "true" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(result.blobInfo)
+			return
+		}
 
-	// Parse multipart form
-	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		// Set headers for file download
+		contentType := getContentType(blobName, result.blobInfo.ContentType)
+
+		// If still getting application/octet-stream, try to detect from file content
+		if contentType == "application/octet-stream" && len(result.data) > 0 {
+			detectedType := detectContentTypeFromBytes(result.data)
+			if detectedType != "application/octet-stream" {
+				log.Printf("Detected content type from file bytes: %s", detectedType)
+				contentType = detectedType
+			}
+		}
+
+		w.Header().Set("Content-Type", contentType)
+
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", result.blobInfo.Size))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s", filepath.Base(blobName)))
+
+		// Enable caching for images
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.Header().Set("ETag", result.blobInfo.ETag)
+
+		// Add metadata as custom headers
+		if result.blobInfo.Metadata != nil {
+			for key, value := range result.blobInfo.Metadata {
+				w.Header().Set(fmt.Sprintf("X-Blob-Meta-%s", key), value)
+			}
+		}
+
+		// Write file content
+		w.WriteHeader(http.StatusOK)
+		w.Write(result.data)
+
+		log.Printf("Successfully served blob: %s (%d bytes)", blobName, len(result.data))
+		log.Printf("Content-Type: %s, Size: %d bytes", contentType, result.blobInfo.Size)
+		log.Printf("Response headers set: Content-Type=%s, Content-Length=%d", contentType, result.blobInfo.Size)
+
+	case <-ctx.Done():
+		log.Printf("Download timeout for blob: %s", blobName)
+		w.WriteHeader(http.StatusRequestTimeout)
 		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "BadRequest",
-			Message: fmt.Sprintf("Failed to parse form: %v", err),
+			Error:   "RequestTimeout",
+			Message: "Download request timed out",
 		})
-		return
 	}
-
-	// Get the file from form
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "BadRequest",
-			Message: "File is required",
-		})
-		return
-	}
-	defer file.Close()
-
-	// Read file content
-	data, err := io.ReadAll(file)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "InternalServerError",
-			Message: fmt.Sprintf("Failed to read file: %v", err),
-		})
-		return
-	}
-
-	// Get blob name (use form value or filename)
-	blobName := r.FormValue("name")
-	if blobName == "" {
-		blobName = header.Filename
-	}
-
-	// Get content type
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	// Get metadata from form values
-	metadata := make(map[string]string)
-	if altText := r.FormValue("altText"); altText != "" {
-		metadata["altText"] = altText
-	}
-	if description := r.FormValue("description"); description != "" {
-		metadata["description"] = description
-	}
-	if tags := r.FormValue("tags"); tags != "" {
-		metadata["tags"] = tags
-	}
-
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-	defer cancel()
-
-	// Upload blob
-	response, err := bs.UploadBlob(ctx, blobName, data, contentType, metadata)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ErrorResponse{
-			Error:   "InternalServerError",
-			Message: fmt.Sprintf("Failed to upload blob: %v", err),
-		})
-		return
-	}
-
-	// Return success response
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
 }
 
 // healthHandler handles GET /health
@@ -423,9 +324,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-		w.Header().Set("Access-Control-Expose-Headers", "X-Blob-Meta-altText, X-Blob-Meta-description, X-Blob-Meta-tags")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Blob-Meta-altText, X-Blob-Meta-description, X-Blob-Meta-tags, Cache-Control, ETag")
 
 		// Handle preflight request
 		if r.Method == "OPTIONS" {
@@ -444,10 +345,8 @@ func setupRoutes(blobService *BlobService) *http.ServeMux {
 	// Health check
 	mux.HandleFunc("GET /health", healthHandler)
 
-	// Blob operations
-	mux.HandleFunc("GET /blobs", blobService.listBlobsHandler)
+	// Blob download operations only
 	mux.HandleFunc("GET /blobs/", blobService.downloadBlobHandler)
-	mux.HandleFunc("POST /blobs", blobService.uploadBlobHandler)
 
 	return mux
 }
@@ -503,12 +402,10 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	log.Printf("Starting Azure Blob API server on port %s", port)
+	log.Printf("Starting Azure Blob Image Server on port %s", port)
 	log.Printf("Health check: http://localhost:%s/health", port)
-	log.Printf("List blobs: http://localhost:%s/blobs", port)
-	log.Printf("Download blob: http://localhost:%s/blobs/{blobName}", port)
-	log.Printf("Download blob metadata: http://localhost:%s/blobs/{blobName}?metadata=true", port)
-	log.Printf("Upload blob: POST http://localhost:%s/blobs", port)
+	log.Printf("Download image: http://localhost:%s/blobs/{blobName}", port)
+	log.Printf("Download image metadata: http://localhost:%s/blobs/{blobName}?metadata=true", port)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)

@@ -1,149 +1,124 @@
 .gallery-container {
-  max-width: 1200px;
-  margin: 20px auto;
   padding: 20px;
 }
 
-.filters {
+.gallery-header {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.gallery-header h2 {
+  margin: 0;
+  color: #343a40;
+}
+
+.gallery-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.batch-loading {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.loading-bar {
+  width: 100%;
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.loading-progress {
+  height: 100%;
+  background: #007bff;
+  transition: width 0.3s ease;
+}
+
+.gallery-grid {
+  display: grid;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
-.filter-input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+.grid-cols-1 { grid-template-columns: 1fr; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
 
-.refresh-btn {
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.loading, .error, .no-images {
-  text-align: center;
-  padding: 20px;
-  font-size: 18px;
-}
-
-.error {
-  color: #dc3545;
-}
-
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.image-card {
-  border: 1px solid #ddd;
+.gallery-item {
+  aspect-ratio: 1;
+  min-height: 200px;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.image-container {
-  height: 200px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
+.gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
-.image-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: cover;
-}
-
-.image-info {
-  padding: 15px;
-}
-
-.image-info h4 {
-  margin: 0 0 10px 0;
-  font-size: 16px;
-  word-break: break-word;
-}
-
-.image-info p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.download-btn, .metadata-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.download-btn {
-  background-color: #007bff;
-  color: white;
-}
-
-.metadata-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+.gallery-image {
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
 }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
+.batch-controls {
+  text-align: center;
+  margin: 20px 0;
 }
 
-.metadata-details p {
-  margin: 10px 0;
-  word-break: break-all;
-}
-
-.custom-metadata {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
-}
-
-.close-btn {
-  background-color: #dc3545;
+.load-all-btn {
+  background: #28a745;
   color: white;
-  padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
   cursor: pointer;
-  margin-top: 15px;
+  transition: background-color 0.2s;
+}
+
+.load-all-btn:hover {
+  background: #218838;
+}
+
+.error-summary {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 16px;
+  border-radius: 6px;
+  margin-top: 20px;
+}
+
+.error-summary h4 {
+  margin: 0 0 8px 0;
+}
+
+.error-summary ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gallery-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
 }

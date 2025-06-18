@@ -38,9 +38,9 @@ export class CardImageComponent implements OnInit {
 
   public ngOnInit(): void {
     this.imageUrl.set(`http://localhost:8080/blobs/${this.imageId}`);
-    this._imageService.downloadBlob(this.imageId).subscribe(result => {
-      this.blob.set(result.blob);
-      // this.blob.set(result.blob);
-    });
+    // this._imageService.downloadBlob(this.imageId).subscribe(result => {
+    //   this.blob.set(result.blob);
+    //   // this.blob.set(result.blob);
+    // });
   }
 }

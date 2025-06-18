@@ -1,54 +1,80 @@
-.app {
-  &-container {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    justify-content: space-around;
-    padding: 40px 0;
-    flex-wrap: wrap;
-
-  }
-}
-
+//.app {
+//  &-container {
+//    display: flex;
+//    flex-direction: row;
+//    gap: 20px;
+//    justify-content: space-around;
+//    padding: 40px 0;
+//    flex-wrap: wrap;
+//
+//  }
+//}
 
 .app-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background: #f8f9fa;
 }
 
 header {
-  background-color: #343a40;
-  color: white;
+  background: white;
   padding: 20px;
-  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 header h1 {
   margin: 0;
+  color: #343a40;
 }
 
-nav {
+.health-status {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  background-color: #e9ecef;
+  align-items: center;
+  gap: 12px;
 }
 
-nav button {
-  padding: 10px 20px;
+.health-status button {
+  background: #007bff;
+  color: white;
   border: none;
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
-  background-color: #6c757d;
-  color: white;
 }
 
-nav button.active {
-  background-color: #007bff;
+.health-status button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.healthy {
+  color: #28a745;
+  font-weight: bold;
 }
 
 main {
   padding: 20px;
+}
+
+.single-image-section {
+  margin-bottom: 40px;
+}
+
+.single-image-section h2 {
+  margin-bottom: 16px;
+  color: #343a40;
+}
+
+.image-container {
+  width: 400px;
+  height: 300px;
+  margin: 0 auto;
+}
+
+.gallery-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
