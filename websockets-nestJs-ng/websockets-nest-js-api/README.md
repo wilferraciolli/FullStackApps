@@ -24,6 +24,7 @@ The server will broadcast the `client-connected` event to all
 ```typescript
 interface ClientConnection {
   clientId: string,
+  clientName: string;  
   message: string,
 }
 ```
@@ -49,6 +50,7 @@ then the server will forward it to the every client connected to the roomId
 ```interface Message {
   id: string;
   clientId: string;
+  clientName: string;
   roomName: string;
   messageType: string;
   message: string;

@@ -37,7 +37,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const authHeader: string | undefined = client.handshake.query[
       'accessKey'
     ] as string;
-    // this._logger.log(authHeader);
+    this._logger.log(authHeader);
 
     if (!authHeader || !this._validateAccessKey(authHeader)) {
       this._logger.error(`Unauthorised connection: ${client.id}`);

@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsBoolean, IsUUID, IsISO8601, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsUUID,
+  IsISO8601,
+  IsNotEmpty,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class MessageDTO {
@@ -12,12 +19,19 @@ export class MessageDTO {
   @IsNotEmpty()
   clientId: string;
 
+  @ApiProperty({ description: 'Client friendly name who sent the message' })
+  @IsString()
+  @IsNotEmpty()
+  clientName: string;
+
   @ApiProperty({ description: 'Name of the room where message was sent' })
   @IsString()
   @IsNotEmpty()
   roomName: string;
 
-  @ApiProperty({ description: 'Type of message (e.g., text, image, notification)' })
+  @ApiProperty({
+    description: 'Type of message (e.g., text, image, notification)',
+  })
   @IsString()
   @IsNotEmpty()
   messageType: string;
@@ -27,7 +41,10 @@ export class MessageDTO {
   @IsNotEmpty()
   message: string;
 
-  @ApiPropertyOptional({ description: 'Whether to send reply to the sender', default: false })
+  @ApiPropertyOptional({
+    description: 'Whether to send reply to the sender',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   replyToSender?: boolean;

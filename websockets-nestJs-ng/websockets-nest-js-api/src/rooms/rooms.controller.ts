@@ -1,12 +1,11 @@
-import {Body, Controller, Param, Post, Query} from "@nestjs/common";
-import {MessagesService} from "./messages.service";
-import {EVENT_NAME_TYPE} from "./constants/event-type.enum";
-import {MessageDTO} from "./message.dto";
+import { Body, Controller, Param, Post, Query } from '@nestjs/common';
+import { MessagesService } from './messages.service';
+import { EVENT_NAME_TYPE } from './constants/event-type.enum';
+import { MessageDTO } from './message.dto';
 
 @Controller('messages')
 export class RoomsController {
-  constructor(private readonly _messageService: MessagesService) {
-  }
+  constructor(private readonly _messageService: MessagesService) {}
 
   @Post('broadcast')
   public broadcastMessage(@Body() messageDTO: MessageDTO): MessageDTO {
