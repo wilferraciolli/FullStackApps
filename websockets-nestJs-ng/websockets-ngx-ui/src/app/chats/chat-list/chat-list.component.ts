@@ -143,6 +143,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'Friendly name',
         roomName: this._buildRoomName(this._roomId()),
         message: this.newMessage,
         messageType: ChatEventType.COMMENT_ADDED,
@@ -161,6 +162,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'clientNme',
         roomName: this._buildRoomName(this._roomId()),
         message: 'User is typing',
         messageType: ChatEventType.USER_TYPING,

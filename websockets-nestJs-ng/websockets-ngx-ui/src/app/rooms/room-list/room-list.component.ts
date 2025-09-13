@@ -157,6 +157,7 @@ export class RoomListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: 'clientId',
+        clientName: 'clientNme',
         roomName: this._buildRoomName(this._roomId()),
         message: this.newMessage,
         messageType: 'comment-added',
