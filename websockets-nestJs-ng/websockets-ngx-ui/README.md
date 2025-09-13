@@ -1,6 +1,11 @@
 # WebsocketsNgxUi
 # WebsocketRoomsUi
-Angular websockets project
+Angular websockets project. this is a client using socket io and the ngx library as a wrapper for better integration.
+
+## Run the app
+```bash
+    ng serve
+```
 
 ## Dependencies
 ### Material

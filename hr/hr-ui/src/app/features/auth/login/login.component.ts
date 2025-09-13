@@ -2,12 +2,22 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    RouterLink, 
+    MatIconModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule
+  ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
@@ -25,7 +35,8 @@ export class LoginComponent implements OnInit {
   ) {
     this.loginForm = this.fb.group({
       username: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rememberMe: [false]
     });
   }
 
@@ -44,9 +55,9 @@ export class LoginComponent implements OnInit {
       this.isLoading = true;
       this.loginError = '';
       
-      const { username, password } = this.loginForm.value;
+      const { username, password, rememberMe } = this.loginForm.value;
       
-      this.authService.login(username, password).subscribe({
+      this.authService.login(username, password, rememberMe).subscribe({
         next: (user) => {
           if (user) {
             // Navigate to returnUrl on successful login

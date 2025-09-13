@@ -1,0 +1,51 @@
+<div class="gallery-container">
+  <!-- Gallery Header -->
+  <div class="gallery-header">
+    <h2>Image Gallery</h2>
+    <div class="gallery-stats">
+      <span>{{ imageNames.length }} images</span>
+      <span *ngIf="loadedCount > 0">{{ loadedCount }} loaded</span>
+    </div>
+  </div>
+
+  <!-- Loading indicator for batch loading -->
+  <div *ngIf="batchLoading" class="batch-loading">
+    <div class="loading-bar">
+      <div class="loading-progress" [style.width.%]="loadingProgress"></div>
+    </div>
+    <span>Loading images... {{ loadedCount }}/{{ imageNames.length }}</span>
+  </div>
+
+  <!-- Gallery Grid -->
+  <div class="gallery-grid" [class.grid-cols-1]="columns === 1"
+       [class.grid-cols-2]="columns === 2"
+       [class.grid-cols-3]="columns === 3"
+       [class.grid-cols-4]="columns === 4">
+    <div *ngFor="let imageName of imageNames; trackBy: trackByImageName"
+         class="gallery-item">
+      <app-blob-image
+        [blobName]="imageName"
+        [showMetadata]="showMetadata"
+        [autoLoad]="!batchMode"
+        (imageLoaded)="onImageLoaded($event, imageName)"
+        (imageError)="onImageError($event, imageName)"
+        class="gallery-image">
+      </app-blob-image>
+    </div>
+  </div>
+
+  <!-- Batch Load Controls -->
+  <div *ngIf="batchMode && !batchLoading" class="batch-controls">
+    <button (click)="loadAllImages()" class="load-all-btn">
+      Load All Images ({{ imageNames.length }})
+    </button>
+  </div>
+
+  <!-- Error Summary -->
+  <div *ngIf="errors.length > 0" class="error-summary">
+    <h4>Failed to load {{ errors.length }} images:</h4>
+    <ul>
+      <li *ngFor="let error of errors">{{ error }}</li>
+    </ul>
+  </div>
+</div>

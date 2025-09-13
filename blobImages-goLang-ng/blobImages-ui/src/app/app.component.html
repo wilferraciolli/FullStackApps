@@ -1,0 +1,83 @@
+<!--<mat-toolbar>-->
+<!--  <button mat-icon-button-->
+<!--          class="example-icon"-->
+<!--          aria-label="Example icon-button with menu icon">-->
+<!--    <mat-icon>menu</mat-icon>-->
+<!--  </button>-->
+<!--  <span>Azure blob storage manager</span>-->
+
+<!--</mat-toolbar>-->
+
+<!--<router-outlet/>-->
+
+<!--<div class="app-container">-->
+<!--  @for (id of imageIds; track id){-->
+<!--    <app-card-image-->
+<!--    [imageId]="id"></app-card-image>-->
+<!--  }-->
+
+<!--</div>-->
+
+<app-dynamic-svg [size]="{width: 56, height: 56}"/>
+
+<!--<div class="app-container">-->
+<!--  <header>-->
+<!--    <h1>Azure Blob Storage Manager</h1>-->
+<!--  </header>-->
+
+<!--  <nav>-->
+<!--    <button-->
+<!--      [class.active]="activeTab === 'upload'"-->
+<!--      (click)="activeTab = 'upload'">-->
+<!--      Upload Images-->
+<!--    </button>-->
+<!--    <button-->
+<!--      [class.active]="activeTab === 'gallery'"-->
+<!--      (click)="activeTab = 'gallery'">-->
+<!--      View Gallery-->
+<!--    </button>-->
+<!--  </nav>-->
+
+<!--  <main>-->
+<!--    <app-blob-upload *ngIf="activeTab === 'upload'"></app-blob-upload>-->
+<!--    <app-blob-gallery *ngIf="activeTab === 'gallery'"></app-blob-gallery>-->
+<!--  </main>-->
+<!--</div>-->
+
+<div class="app-container">
+  <header>
+    <h1>Azure Blob Image Viewer</h1>
+    <div class="health-status">
+      <button (click)="checkHealth()" [disabled]="checkingHealth">
+        {{ checkingHealth ? 'Checking...' : 'Check Health' }}
+      </button>
+      <span *ngIf="healthStatus" [class.healthy]="healthStatus.status === 'healthy'">
+        {{ healthStatus.status }}
+      </span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Single Image Example -->
+    <section class="single-image-section">
+      <h2>Single Image</h2>
+      <div class="image-container">
+        <app-blob-image
+          blobName="GOPR2963.JPG"
+          [showMetadata]="false"
+          [autoLoad]="true">
+        </app-blob-image>
+      </div>
+    </section>
+
+    <!-- Gallery Example -->
+    <section class="gallery-section">
+      <app-blob-gallery
+        [imageNames]="imageNames"
+        [columns]="3"
+        [showMetadata]="false"
+        [batchMode]="false">
+      </app-blob-gallery>
+    </section>
+  </main>
+</div>
