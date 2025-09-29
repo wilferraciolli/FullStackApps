@@ -45,6 +45,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       return;
     }
+    this._logger.log('client connected ' + client.id);
 
     this._clients.set(client.id, client);
 
@@ -56,6 +57,7 @@ export class RoomsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   public handleDisconnect(client: Socket): void {
     this._clients.delete(client.id);
+    this._logger.log('client disconnected ' + client.id);
 
     this._server.emit(EVENT_NAME_TYPE.CLIENT_DISCONNECTED, {
       clientId: client.id,
