@@ -13,6 +13,7 @@ import {WebsocketError} from '../../sockets/interfaces/error.interface';
 import {RoomAcknowledge} from '../../sockets/interfaces/room-acknowledge.interface';
 import {ChatMessageComponent} from '../chat-message/chat-message.component';
 import {ChatEventType} from '../constants/chat-event-type.enum';
+import {toSignal} from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'wt-chat-list',
@@ -45,6 +46,8 @@ export class ChatListComponent implements OnInit, OnDestroy {
 
   private _snackBar: MatSnackBar = inject(MatSnackBar);
   private _socketService: SocketService = inject(SocketService);
+
+  public isConnected: Signal<boolean> = toSignal(this._socketService.getConnected(), {initialValue: false});
 
   constructor() {
   }
@@ -143,6 +146,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'Client Name',
         roomName: this._buildRoomName(this._roomId()),
         message: this.newMessage,
         messageType: ChatEventType.COMMENT_ADDED,
@@ -161,6 +165,7 @@ export class ChatListComponent implements OnInit, OnDestroy {
       const message: Message = {
         id: 'id',
         clientId: this._clientId(),
+        clientName: 'Client Name',
         roomName: this._buildRoomName(this._roomId()),
         message: 'User is typing',
         messageType: ChatEventType.USER_TYPING,
@@ -187,11 +192,20 @@ export class ChatListComponent implements OnInit, OnDestroy {
     console.log('Left room:', leaveRoomResponse);
     console.log('Joined room:', joinRoomResponse);
     this._snackBar.open(`joined chat ${roomNumber}`, 'X', {
+
       duration: 2000,
     });
 
     this.messages.set([]);
     this._roomId.set(roomNumber);
+  }
+
+  public connect(): void {
+    this._socketService.connectClient();
+  }
+
+  public disconnect(): void {
+    this._socketService.disconnectClient();
   }
 
   private _buildRoomName(roomId: number): string {

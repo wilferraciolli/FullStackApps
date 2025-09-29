@@ -14,19 +14,26 @@
 <!--<section>{{clientId()}}</section>-->
 
 <div class="chat-list-chat-container">
+  <button mat-button (click)="connect()"
+          [disabled]="isConnected()">Connect
+  </button>
+  <button mat-button (click)="disconnect()"
+          [disabled]="!isConnected()">Disconnect
+  </button>
+
   <div class="chat-list-messages">
     <div *ngFor="let msg of messages()" class="chat-list-message">
       <wt-chat-message
-      [clientId]="clientId()"
-      [message]="msg"/>
+        [clientId]="clientId()"
+        [message]="msg"/>
 
     </div>
   </div>
   <div class="chat-list-input-area">
     <input class="chat-list-input"
-      [(ngModel)]="newMessage"
-      placeholder="Type a message..."
-      (keyup.enter)="sendMessage()"
+           [(ngModel)]="newMessage"
+           placeholder="Type a message..."
+           (keyup.enter)="sendMessage()"
            (keyup)="sendUserTypingMessage()"
     />
     <button (click)="sendMessage()">Send</button>

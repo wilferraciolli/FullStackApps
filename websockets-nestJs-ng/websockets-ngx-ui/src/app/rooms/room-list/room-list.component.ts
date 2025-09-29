@@ -10,6 +10,7 @@ import {EventType} from '../../sockets/constants/event-type.constant';
 import {ClientConnection} from '../../sockets/interfaces/client-connection.interface';
 import {WebsocketError} from '../../sockets/interfaces/error.interface';
 import {MatSnackBar} from '@angular/material/snack-bar';
+import {toSignal} from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'wt-room-list',
@@ -41,6 +42,8 @@ export class RoomListComponent implements OnInit, OnDestroy {
 
   private _snackBar: MatSnackBar = inject(MatSnackBar);
   private _socketService: SocketService = inject(SocketService);
+
+  public isConnected: Signal<boolean> = toSignal(this._socketService.getConnected(), {initialValue: false});
 
   constructor() {
   }
@@ -189,6 +192,14 @@ export class RoomListComponent implements OnInit, OnDestroy {
 
     this.messages.set([]);
     this._roomId.set(roomNumber);
+  }
+
+  public connect(): void {
+    this._socketService.connectClient();
+  }
+
+  public disconnect(): void {
+    this._socketService.disconnectClient();
   }
 
   private _buildRoomName(roomId: number): string {

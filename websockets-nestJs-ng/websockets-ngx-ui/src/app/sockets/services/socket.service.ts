@@ -1,6 +1,6 @@
 import {Socket, SocketIoConfig} from 'ngx-socket-io';
 import {Injectable} from '@angular/core';
-import {Observable, Subject} from 'rxjs';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {MessageType} from '../constants/message-type.constant';
 import {Message} from '../interfaces/message.interface';
 import {Room} from '../interfaces/room.interface';
@@ -13,8 +13,9 @@ import {WebsocketError} from '../interfaces/error.interface';
 export const socketConfig: SocketIoConfig = {
   url: environment.websocketsUrl,
   options: {
-    transports: ['websocket'],
-    reconnection: true,
+    transports: ['websocket'], // forces websocket protocol
+    reconnection: true, // if connection failure reconnect
+    autoConnect: false, // do not connect on start up, only manual connection
     query: {
       'accessKey': environment.accessKey
     }
@@ -27,6 +28,7 @@ export const socketConfig: SocketIoConfig = {
 export class SocketService {
   private _errorSubject: Subject<WebsocketError> = new Subject<WebsocketError>();
   private _errorConnectionSubject: Subject<WebsocketError> = new Subject<WebsocketError>();
+  private _connectionSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   constructor(private socket: Socket) {
     this._setUpErrorListeners();
@@ -69,6 +71,10 @@ export class SocketService {
     return this._errorSubject.asObservable();
   }
 
+  public getConnected(): Observable<boolean> {
+    return this._connectionSubject.asObservable();
+  }
+
   /**
    * Method to subscribe to connection errors.
    */
@@ -88,6 +94,7 @@ export class SocketService {
    */
   public connectClient(): void {
     this.socket.connect();
+    this._connectionSubject.next(true);
   }
 
   /**
@@ -95,6 +102,7 @@ export class SocketService {
    */
   public disconnectClient(): void {
     this.socket.disconnect();
+    this._connectionSubject.next(false);
   }
 
   private async _roomAction(eventName: string, data: Room): Promise<RoomAcknowledge> {

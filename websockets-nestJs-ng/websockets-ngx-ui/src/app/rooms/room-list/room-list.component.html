@@ -12,6 +12,13 @@
   </div>
 </section>
 <div class="chat-container">
+  <button mat-button (click)="connect()"
+          [disabled]="isConnected()">Connect
+  </button>
+  <button mat-button (click)="disconnect()"
+          [disabled]="!isConnected()">Disconnect
+  </button>
+
   <div class="messages">
     <div *ngFor="let msg of messages()" class="message">
       <strong>{{ msg.roomName }}:</strong> {{ msg.message }}

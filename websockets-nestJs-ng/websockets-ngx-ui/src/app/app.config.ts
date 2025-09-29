@@ -13,5 +13,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(),
     importProvidersFrom(SocketIoModule.forRoot(socketConfig))
+    // TODO check if possible to start socket server dynamically
   ]
 };
